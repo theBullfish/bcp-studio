@@ -1,0 +1,30 @@
+# Node / Next
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env & secrets
+.env
+.env.local
+web/.env
+worker/.env
+
+# Prisma
+web/prisma/dev.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Media / data
+/data/
+web/public/uploads/
+
+# OS
+.DS_Store

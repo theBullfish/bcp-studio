@@ -1,0 +1,563 @@
+// Balls and Chunk Productions — Studio
+// Full data model. This schema is the spine of the whole platform.
+// Every feature (clients/brands, media, AI plays, scheduling, approvals,
+// analytics, messaging, calendar) reads and writes here.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Users, roles, org
+// ---------------------------------------------------------------------------
+
+// Company-wide role. Governs what a user can do across the whole studio.
+enum Role {
+  OWNER      // full control, billing, everything
+  ADMIN      // manage users, clients, settings
+  PRODUCER   // create projects, run plays, schedule
+  EDITOR     // finish/polish media, edit drafts
+  APPROVER   // approve posts before they go live
+  CONTRIBUTOR// upload media, draft posts (needs approval)
+  VIEWER     // read-only, analytics
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  passwordHash  String?
+  image         String?
+  role          Role     @default(CONTRIBUTOR)
+  active        Boolean  @default(true)
+  payRateCents  Int?     // internal pay tracking (hourly/flat, private)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // relations
+  memberships    ClientMembership[]
+  projects       Project[]          @relation("ProjectOwner")
+  uploadedMedia  MediaAsset[]       @relation("MediaUploader")
+  playRuns       PlayRun[]
+  authoredPosts  Post[]             @relation("PostAuthor")
+  approvals      Approval[]
+  sentMessages   Message[]          @relation("MessageSender")
+  conversations  ConversationParticipant[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+  payEntries     PayEntry[]
+  sessions       Session[]
+}
+
+// NextAuth-compatible session table (for DB session strategy / future).
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Clients / Brands — each client is a brand with its own kit
+// ---------------------------------------------------------------------------
+
+model Client {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  brandKit    BrandKit?
+  memberships ClientMembership[]
+  projects    Project[]
+  posts       Post[]
+  socialAccounts SocialAccount[]
+  releases    Release[]
+  revenue     RevenueEntry[]
+  assets      BrandAsset[]
+}
+
+// Per-user access to a specific client (a user may work several brands).
+model ClientMembership {
+  id       String @id @default(cuid())
+  userId   String
+  clientId String
+  // Optional per-client role override (else falls back to the user's global role).
+  role     Role?
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clientId])
+}
+
+// The visual identity applied automatically to that client's content.
+model BrandKit {
+  id            String   @id @default(cuid())
+  clientId      String   @unique
+  primaryColor  String   @default("#111111")
+  secondaryColor String  @default("#ffffff")
+  accentColor   String   @default("#6d28d9")
+  fontHeading   String   @default("Inter")
+  fontBody      String   @default("Inter")
+  logoUrl       String?  // primary logo
+  logoMarkUrl   String?  // square mark / avatar
+  watermarkUrl  String?
+  toneOfVoice   String?  // guides AI copy generation
+  hashtagsCsv   String?  // default hashtags for this brand
+  updatedAt     DateTime @updatedAt
+
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum BrandAssetKind {
+  LOGO
+  FONT
+  COLOR
+  TEMPLATE
+  OVERLAY
+  LOWER_THIRD
+  INTRO
+  OUTRO
+  OTHER
+}
+
+model BrandAsset {
+  id        String         @id @default(cuid())
+  clientId  String
+  kind      BrandAssetKind
+  name      String
+  url       String
+  meta      Json?
+  createdAt DateTime       @default(now())
+  client    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Projects & Media — "record a bit, hand it to the server"
+// ---------------------------------------------------------------------------
+
+enum ProjectStatus {
+  DRAFT
+  PROCESSING   // plays are running
+  READY        // variants generated, awaiting finishing
+  SCHEDULED
+  ARCHIVED
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  clientId    String
+  ownerId     String
+  title       String
+  summary     String?       // the summary the user provides; feeds AI copy
+  status      ProjectStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner       User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  media       MediaAsset[]
+  playRuns    PlayRun[]
+  posts       Post[]
+  releases    Release[]
+}
+
+enum MediaKind {
+  VIDEO
+  AUDIO
+  IMAGE
+  DOCUMENT
+}
+
+enum MediaStatus {
+  UPLOADING
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+}
+
+// A media asset is either a source upload or a derived variant produced by a play.
+model MediaAsset {
+  id           String      @id @default(cuid())
+  projectId    String
+  uploaderId   String?
+  kind         MediaKind
+  status       MediaStatus @default(UPLOADED)
+  label        String
+  url          String
+  thumbnailUrl String?
+  storageKey   String?     // object-store key
+  durationMs   Int?
+  width        Int?
+  height       Int?
+  sizeBytes    Int?
+  // If this asset was derived from a play run, link back to source + run.
+  derivedFromId String?
+  playRunId     String?
+  format        String?     // e.g. "reel_9x16", "square_1x1", "still_thumbnail"
+  meta          Json?
+  createdAt     DateTime    @default(now())
+
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader     User?       @relation("MediaUploader", fields: [uploaderId], references: [id])
+  derivedFrom  MediaAsset? @relation("Derivations", fields: [derivedFromId], references: [id])
+  derivatives  MediaAsset[]@relation("Derivations")
+  playRun      PlayRun?    @relation(fields: [playRunId], references: [id])
+  posts        PostMedia[]
+}
+
+// ---------------------------------------------------------------------------
+// AI Plays — pre-developed recipes that cut media into every format
+// ---------------------------------------------------------------------------
+
+enum PlayRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+// A Play is a reusable recipe. `steps` is a declarative pipeline the worker runs.
+model Play {
+  id          String   @id @default(cuid())
+  key         String   @unique       // e.g. "shorts_pack", "podcast_clips"
+  name        String
+  description String?
+  // Declarative pipeline definition consumed by the Python worker.
+  // e.g. [{op:"transcribe"},{op:"cut", format:"reel_9x16", count:5}, ...]
+  steps       Json
+  outputs     Json?    // expected output formats
+  builtin     Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  runs        PlayRun[]
+}
+
+model PlayRun {
+  id          String        @id @default(cuid())
+  playId      String
+  projectId   String
+  triggeredById String?
+  status      PlayRunStatus @default(QUEUED)
+  progress    Int           @default(0) // 0-100
+  logsUrl     String?
+  error       String?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime      @default(now())
+
+  play        Play          @relation(fields: [playId], references: [id])
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  triggeredBy User?         @relation(fields: [triggeredById], references: [id])
+  outputs     MediaAsset[]
+}
+
+// ---------------------------------------------------------------------------
+// Social accounts & posts — manual or automatic posting, on a schedule
+// ---------------------------------------------------------------------------
+
+enum Platform {
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  X
+  FACEBOOK
+  LINKEDIN
+  THREADS
+}
+
+model SocialAccount {
+  id           String   @id @default(cuid())
+  clientId     String
+  platform     Platform
+  handle       String
+  displayName  String?
+  // OAuth material stored encrypted at rest in production; nullable for mock provider.
+  accessToken  String?
+  refreshToken String?
+  tokenExpires DateTime?
+  connected    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  posts        Post[]
+
+  @@unique([clientId, platform, handle])
+}
+
+enum PostStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  REJECTED
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  clientId    String
+  projectId   String?
+  authorId    String
+  socialAccountId String?
+  platform    Platform
+  status      PostStatus @default(DRAFT)
+  caption     String     // auto-generated from summary, then editable
+  captionAi   String?    // original AI draft, kept for reference
+  hashtags    String?
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  externalId  String?    // id returned by the platform after publish
+  externalUrl String?
+  failureReason String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  client      Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project     Project?   @relation(fields: [projectId], references: [id])
+  author      User       @relation("PostAuthor", fields: [authorId], references: [id])
+  socialAccount SocialAccount? @relation(fields: [socialAccountId], references: [id])
+  media       PostMedia[]
+  approvals   Approval[]
+  metrics     PostMetric[]
+}
+
+// Join: which media attaches to a post, in what order.
+model PostMedia {
+  id       String @id @default(cuid())
+  postId   String
+  mediaId  String
+  position Int    @default(0)
+  post     Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media    MediaAsset @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, mediaId])
+}
+
+// ---------------------------------------------------------------------------
+// Approvals — "a couple people can approve it and it gets posted"
+// ---------------------------------------------------------------------------
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+model Approval {
+  id         String           @id @default(cuid())
+  postId     String
+  reviewerId String
+  decision   ApprovalDecision @default(PENDING)
+  comment    String?
+  decidedAt  DateTime?
+  createdAt  DateTime         @default(now())
+
+  post       Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reviewer   User @relation(fields: [reviewerId], references: [id])
+
+  @@unique([postId, reviewerId])
+}
+
+// ---------------------------------------------------------------------------
+// Calendar / Releases — the release-date view + company view
+// ---------------------------------------------------------------------------
+
+enum ReleaseKind {
+  SINGLE
+  ALBUM
+  EP
+  VIDEO
+  EPISODE
+  CAMPAIGN
+  EVENT
+  OTHER
+}
+
+model Release {
+  id          String      @id @default(cuid())
+  clientId    String
+  projectId   String?
+  title       String
+  kind        ReleaseKind @default(SINGLE)
+  releaseDate DateTime
+  isPrimary   Boolean     @default(false) // shows in the "my release dates" focused view
+  notes       String?
+  createdAt   DateTime    @default(now())
+
+  client      Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project     Project?    @relation(fields: [projectId], references: [id])
+}
+
+// Generic company calendar events (meetings, deadlines, holds).
+enum CalendarEventKind {
+  RELEASE
+  MEETING
+  DEADLINE
+  SHOOT
+  HOLD
+  OTHER
+}
+
+model CalendarEvent {
+  id        String            @id @default(cuid())
+  title     String
+  kind      CalendarEventKind @default(OTHER)
+  start     DateTime
+  end       DateTime?
+  allDay    Boolean           @default(false)
+  clientId  String?
+  notes     String?
+  createdAt DateTime          @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Analytics & business tracking — "as much tracking data as we can"
+// ---------------------------------------------------------------------------
+
+// Time-series performance per post per platform (private, internal only).
+model PostMetric {
+  id          String   @id @default(cuid())
+  postId      String
+  capturedAt  DateTime @default(now())
+  impressions Int      @default(0)
+  reach       Int      @default(0)
+  likes       Int      @default(0)
+  comments    Int      @default(0)
+  shares      Int      @default(0)
+  saves       Int      @default(0)
+  views       Int      @default(0)
+  clicks      Int      @default(0)
+  revenueCents Int     @default(0)
+
+  post        Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+enum RevenueSource {
+  STREAMING
+  SYNC
+  MERCH
+  AD_REVENUE
+  SPONSORSHIP
+  LIVE
+  OTHER
+}
+
+model RevenueEntry {
+  id         String        @id @default(cuid())
+  clientId   String
+  source     RevenueSource
+  amountCents Int
+  currency   String        @default("USD")
+  occurredAt DateTime
+  note       String?
+  createdAt  DateTime      @default(now())
+
+  client     Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// Internal pay tracking per user (private).
+model PayEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  amountCents Int
+  currency   String   @default("USD")
+  periodStart DateTime
+  periodEnd   DateTime
+  note       String?
+  paid       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Trending stories / news feed items pulled in for the team.
+model TrendItem {
+  id        String   @id @default(cuid())
+  source    String   // e.g. "google-trends", "rss:pitchfork"
+  title     String
+  url       String?
+  score     Float?
+  category  String?
+  capturedAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Messaging — in-app messaging on user accounts
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id        String   @id @default(cuid())
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String
+  createdAt      DateTime @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("MessageSender", fields: [senderId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications & audit
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String   // e.g. "approval_requested", "post_published"
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  user      User? @relation(fields: [userId], references: [id])
+}

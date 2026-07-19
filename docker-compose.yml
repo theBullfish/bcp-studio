@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bcp
+      POSTGRES_PASSWORD: bcp
+      POSTGRES_DB: bcp_studio
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bcp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build: ./worker
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5}
+      MEDIA_ROOT: /data/media
+    volumes:
+      - media_data:/data/media
+    ports:
+      - "8800:8800"
+
+  web:
+    build: ./web
+    depends_on:
+      db:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://bcp:bcp@db:5432/bcp_studio
+      WORKER_URL: http://worker:8800
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-insecure-secret-change-me}
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
+  media_data:
