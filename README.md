@@ -70,9 +70,27 @@ bcp-studio/
 └── docs/TEMPLATE_SPEC.md  # how our pages plug into Skote's components
 ```
 
-## Production notes
+## Tests & CI
 
-- Set `DEBUG=False`, a real `SECRET_KEY`, `ALLOWED_HOSTS`, and a Postgres `DATABASE_URL`.
-- Switch `ACCOUNT_EMAIL_VERIFICATION` back to `"mandatory"` and configure SMTP.
-- Move the AI plays to a Celery worker; wire real platform-publish providers.
-- See `ROADMAP.md` for what's built vs. next.
+```bash
+pytest            # 50-test suite (models, RBAC, ingest, stripe, video gating, plays, pages)
+ruff check studio skote syncagent
+make check        # django check + migration drift
+```
+GitHub Actions runs ruff + Django check + migration check + pytest on every push/PR.
+
+## Production
+
+Everything is env-gated — the same code runs zero-config in dev and scales up in prod.
+See **`docs/DEPLOY.md`** for the full matrix. In short:
+
+- `DJANGO_DEBUG=0` turns on HSTS, SSL redirect, secure cookies. Set `DJANGO_SECRET_KEY`,
+  `DJANGO_ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and `DATABASE_URL` (Postgres).
+- `CELERY_BROKER_URL=redis://…` moves plays/transcode/publishing/scheduling to a worker + beat.
+- `AWS_STORAGE_BUCKET_NAME` (+ keys / `AWS_S3_ENDPOINT_URL` for R2) stores media & HLS off-box
+  with signed URLs. Static is served compressed by WhiteNoise (`collectstatic` at build).
+- `STRIPE_*` (GritBox account) enables real checkout + subscriptions; platform `*_CLIENT_*`
+  creds enable real posting. Without them the app runs on mock/graceful fallbacks.
+- `docker compose up --build` brings up db + redis + web + worker + beat.
+
+See `ROADMAP.md` (Phase 4 done) and `docs/PILLARS.md` for architecture.

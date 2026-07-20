@@ -37,14 +37,27 @@ but not connected to a real external service yet.
 - [x] **Paid video platform**: Channels/Videos/tiers, membership subscriptions,
       access-gated self-hosted HLS (ffmpeg transcode + hls.js player)
 
-## Phase 4 — Make the pillars production-grade  ⏳ next
-- [ ] Real per-platform OAuth token exchange (the connect flow slots into the
-      existing authorization model) + real publish providers
-- [ ] Object storage (S3/R2) for media + HLS segments; signed/expiring URLs
-- [ ] Celery: move transcode + auto-posting + metric polling off the request path
-- [ ] Stripe: live keys/secrets via SOPS, subscription lifecycle webhooks (renew/cancel)
-- [ ] CDN in front of HLS; transcription (whisper) + smarter highlight detection
-- [ ] In-browser quick-finish editor; notifications (email/push)
+## Phase 4 — Production-grade  ✅ done (first pass)
+- [x] **Background jobs**: Celery app + tasks (plays, transcode, publish) + beat
+      scheduler (publish due posts, poll metrics); eager fallback so dev needs no broker
+- [x] **Real publishing pipeline**: per-platform providers (Instagram/TikTok/YouTube/X)
+      with real API call structures, mock fallback, OAuth connect/callback flow
+- [x] **Auto-post engine**: play outputs fan out to channels via DistributionRules
+      (auto-post → schedule + publish; else draft)
+- [x] **Object storage**: env-gated S3/R2 via django-storages; storage-backed uploads;
+      signed/expiring HLS playback URLs (token-gated `hls_stream`)
+- [x] **Quick-finish editor**: in-browser trim + caption → ffmpeg render task → derived asset
+- [x] **Security hardening**: HSTS/SSL redirect/secure cookies (auto when DEBUG off),
+      CSRF trusted origins, WhiteNoise static, structured logging, upload limits
+- [x] **CI + tests**: GitHub Actions (ruff + check + migrations + pytest); 50-test suite
+- [x] **Deploy**: docker-compose (db + redis + web + worker + beat), Makefile, deploy guide
+
+## Phase 5 — Scale & depth  ⏳ next
+- [ ] Live platform app registrations + token refresh; publish retries/backoff dashboards
+- [ ] CDN in front of HLS; multi-bitrate ladder; whisper transcription + smarter highlights
+- [ ] Stripe subscription lifecycle webhooks (renew/cancel/dunning) + customer portal
+- [ ] Notifications (email/push), realtime messaging (channels/websockets)
+- [ ] Per-client granular roles, audit-log UI, mobile capture app
 
 ## Phase 4 — Scale &amp; polish
 - [ ] Stripe billing per client / usage

@@ -23,7 +23,14 @@
   <div class="col-12">
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title mb-3">Source media</h5>
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title mb-0 me-2">Source media</h5>
+          {% if can_run %}
+          <a href="{% url 'studio:media_upload' project.id %}" class="btn btn-sm btn-soft-primary ms-auto">
+            <i class="bx bx-upload"></i> Upload
+          </a>
+          {% endif %}
+        </div>
         <div class="table-responsive">
           <table class="table align-middle table-nowrap mb-0">
             <thead>
@@ -120,7 +127,12 @@
               <span class="badge bg-soft-success text-success mb-2">{{ d.format }}</span>
               <h6 class="mb-1">{{ d.label }}</h6>
               <small class="text-muted d-block">{{ d.get_kind_display }}</small>
-              {% if d.play_run.play.name %}<small class="text-muted">via {{ d.play_run.play.name }}</small>{% endif %}
+              {% if d.play_run.play.name %}<small class="text-muted d-block">via {{ d.play_run.play.name }}</small>{% endif %}
+              {% if d.kind == 'VIDEO' %}
+              <a href="{% url 'studio:media_edit' d.id %}" class="btn btn-sm btn-soft-primary mt-2">
+                <i class="bx bx-cut"></i> Quick finish
+              </a>
+              {% endif %}
             </div>
           </div>
           {% empty %}

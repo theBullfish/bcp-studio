@@ -86,6 +86,10 @@
                       {% if s.connected %}Update{% else %}Authorize{% endif %}
                     </button>
                   </form>
+                  <a href="{% url 'studio:connect_start' client.id s.platform %}"
+                     class="btn btn-sm btn-soft-secondary ms-1" title="Connect via the platform's OAuth">
+                    <i class="bx bx-link-external"></i> OAuth
+                  </a>
                   {% else %}
                     <span class="text-muted small">read-only</span>
                   {% endif %}

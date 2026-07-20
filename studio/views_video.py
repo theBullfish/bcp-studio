@@ -94,8 +94,13 @@ def watch_video(request, video_id):
     memberships = _viewer_memberships(request)
     accessible = video.accessible_to(memberships)
 
-    src = video.hls_path or video.source_url
-    is_hls = bool(src) and src.endswith(".m3u8")
+    # Serve playback through a signed, expiring URL so members-only content
+    # can't be hotlinked. Detect HLS from the underlying file, not the token URL.
+    from .signing import signed_hls_url
+
+    underlying = video.hls_path or video.source_url
+    is_hls = bool(underlying) and underlying.endswith(".m3u8")
+    src = signed_hls_url(video, request) if (accessible and underlying) else ""
 
     if accessible and src:
         # Record a view (best effort — attach customer/user when we can).

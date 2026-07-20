@@ -57,4 +57,7 @@ urlpatterns = [
     path("", include("studio.urls_video")),
     path("", include("studio.urls_socials")),
     path("", include("studio.urls_ingest")),
+    # Phase 4: OAuth connect + storage uploads / editor / signed video streaming
+    path("", include("studio.urls_publish")),
+    path("", include("studio.urls_media")),
 ]

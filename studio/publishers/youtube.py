@@ -13,6 +13,7 @@ plus a user access token on the channel's ``SocialAccount``.
 
 from __future__ import annotations
 
+import json
 import os
 
 import requests
@@ -53,7 +54,7 @@ class YouTubeProvider(Provider):
             src = requests.get(media_url, timeout=60)
             src.raise_for_status()
             files = {
-                "metadata": (None, __import__("json").dumps(metadata), "application/json"),
+                "metadata": (None, json.dumps(metadata), "application/json"),
                 "file": ("video.mp4", src.content, "video/*"),
             }
             resp = requests.post(

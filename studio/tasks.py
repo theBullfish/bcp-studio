@@ -16,6 +16,9 @@ from django.utils import timezone
 
 logger = logging.getLogger("studio")
 
+# Register the editor's trim task with Celery (defined in studio/editing.py).
+from .editing import trim_media_task  # noqa: E402,F401
+
 
 @shared_task(bind=True, max_retries=2)
 def run_play_task(self, play_run_id: int):
