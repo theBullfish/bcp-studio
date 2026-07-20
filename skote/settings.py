@@ -272,8 +272,12 @@ INGEST_MAX_BYTES = int(_os.getenv("INGEST_MAX_BYTES", "0"))
 # --- Static files served by WhiteNoise (compressed + cache-busted) ----------
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Compressed (gzip/brotli) static serving via WhiteNoise. We use the
+    # non-manifest variant because the vendored Skote theme references a few
+    # optional assets (e.g. tinymce sourcemaps) that the strict manifest
+    # hasher would reject — this keeps collectstatic reliable in CI/Docker.
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"
         if not DEBUG
         else "django.contrib.staticfiles.storage.StaticFilesStorage"
     },
@@ -295,9 +299,11 @@ if AWS_STORAGE_BUCKET_NAME:
 
 # --- Celery (background jobs) ------------------------------------------------
 # With no broker set, tasks run EAGERLY (synchronously) so dev needs no Redis.
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL or "cache+memory://")
-CELERY_TASK_ALWAYS_EAGER = not bool(CELERY_BROKER_URL)
+_broker = os.getenv("CELERY_BROKER_URL", "")
+CELERY_TASK_ALWAYS_EAGER = not bool(_broker)
+# In eager mode use an in-memory transport so kombu doesn't try localhost.
+CELERY_BROKER_URL = _broker or "memory://"
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", _broker or "cache+memory://")
 CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"

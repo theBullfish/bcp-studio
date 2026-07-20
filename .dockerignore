@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+db.sqlite3
+media/
+assets/
+node_modules
+.env
+.env.local
