@@ -76,6 +76,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise serves static files efficiently in production (compressed + hashed).
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -261,3 +263,92 @@ MEDIA_URL = "/media/"
 HLS_ROOT = _os.getenv("HLS_ROOT", str(BASE_DIR / "media" / "hls"))
 # Max ingest upload size guard (bytes) — 0 = unlimited
 INGEST_MAX_BYTES = int(_os.getenv("INGEST_MAX_BYTES", "0"))
+
+
+# ===========================================================================
+# Phase 4 — production hardening (all env-gated; dev stays zero-config)
+# ===========================================================================
+
+# --- Static files served by WhiteNoise (compressed + cache-busted) ----------
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        if not DEBUG
+        else "django.contrib.staticfiles.storage.StaticFilesStorage"
+    },
+}
+
+# --- Object storage (S3/R2) for user media + HLS — enabled when configured ---
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "us-east-1")
+    AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL", "") or None  # R2/minio
+    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "") or None
+    AWS_QUERYSTRING_AUTH = True   # signed/expiring URLs for private media
+    AWS_QUERYSTRING_EXPIRE = int(os.getenv("AWS_QUERYSTRING_EXPIRE", "3600"))
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+
+# --- Celery (background jobs) ------------------------------------------------
+# With no broker set, tasks run EAGERLY (synchronously) so dev needs no Redis.
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL or "cache+memory://")
+CELERY_TASK_ALWAYS_EAGER = not bool(CELERY_BROKER_URL)
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "publish-due-posts": {
+        "task": "studio.tasks.publish_due_posts",
+        "schedule": 60.0,  # every minute
+    },
+    "poll-post-metrics": {
+        "task": "studio.tasks.poll_all_metrics",
+        "schedule": 900.0,  # every 15 min
+    },
+}
+
+# --- File upload limits / ingest guard --------------------------------------
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv("DATA_UPLOAD_MAX_MEMORY_SIZE", str(50 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
+
+# --- Security (applied automatically when DEBUG is off) ----------------------
+CSRF_TRUSTED_ORIGINS = [
+    o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o
+]
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "1") == "1"
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+
+# --- Structured logging ------------------------------------------------------
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {"format": "{asctime} {levelname} {name} {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+    },
+    "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "studio": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO"), "propagate": False},
+    },
+}
+
+# HLS signed-URL secret (for local/non-S3 signed playback tokens)
+HLS_URL_SIGNING_SALT = os.getenv("HLS_URL_SIGNING_SALT", "bcp-hls-signing")

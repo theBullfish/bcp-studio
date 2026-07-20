@@ -15,7 +15,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
-from skote import views
 from .views import MyPasswordSetView ,MyPasswordChangeView
 from django.contrib.auth.decorators import login_required
 from django.views.generic import TemplateView

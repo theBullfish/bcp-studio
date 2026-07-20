@@ -1,8 +1,6 @@
-from django.http import request
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 from django.views import View   
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.base import TemplateView
 from allauth.account.views import PasswordSetView,PasswordChangeView
 from django.urls import reverse_lazy
 

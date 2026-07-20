@@ -290,34 +290,18 @@ def play_run(request, project_id):
         return redirect("studio:project_detail", project_id=project.id)
     play = get_object_or_404(models.Play, id=request.POST.get("play"))
     run = models.PlayRun.objects.create(
-        play=play, project=project, triggered_by=request.user, status="RUNNING"
+        play=play, project=project, triggered_by=request.user, status="QUEUED"
     )
-    source = project.media.filter(derived_from__isnull=True).first()
-    try:
-        outputs, real = services.run_play(play.steps, run_id=f"run{run.id}")
-        for out in outputs:
-            models.MediaAsset.objects.create(
-                project=project,
-                kind=out["kind"],
-                label=out["label"],
-                format=out["format"],
-                url=out.get("path", ""),
-                status="READY",
-                derived_from=source,
-                play_run=run,
-            )
-        run.status = "SUCCEEDED"
-        run.progress = 100
-        run.finished_at = timezone.now()
-        run.save()
-        project.status = "READY"
-        project.save(update_fields=["status"])
-        messages.success(request, f"“{play.name}” produced {len(outputs)} variants.")
-    except Exception as exc:  # keep the run recoverable
-        run.status = "FAILED"
-        run.error = str(exc)
-        run.save()
-        messages.error(request, f"Play failed: {exc}")
+    # Runs on a Celery worker in production; inline (eager) in dev. On success it
+    # also fans the outputs out to the client's distribution rules (auto-post).
+    from .tasks import run_play_task
+
+    run_play_task.delay(run.id)
+    run.refresh_from_db()
+    if run.status == "FAILED":
+        messages.error(request, f"Play failed: {run.error}")
+    else:
+        messages.success(request, f"“{play.name}” is producing variants ({run.get_status_display()}).")
     return redirect("studio:project_detail", project_id=project.id)
 
 

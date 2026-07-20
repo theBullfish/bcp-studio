@@ -19,11 +19,9 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
-from . import models
 from .ingest_models import Device, IngestedFile
 from .models import Client, MediaAsset, Project, Role, role_at_least
 

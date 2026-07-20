@@ -1,8 +1,30 @@
+# --- Core ---
 Django==4.2.7
 django-allauth==0.57.0
 django-crispy-forms==2.1
 crispy-bootstrap5==2023.10
 Pillow==10.1.0
-anthropic>=0.39
 dj-database-url==2.1.0
+psycopg2-binary==2.9.9
+
+# --- AI / media / payments ---
+anthropic>=0.39
 stripe>=7.0
+requests>=2.31
+
+# --- Background jobs ---
+celery[redis]>=5.3
+redis>=5.0
+
+# --- Storage / static ---
+django-storages>=1.14
+boto3>=1.34
+whitenoise>=6.6
+
+# --- Server ---
+gunicorn>=21.2
+
+# --- Dev / test ---
+pytest>=8.0
+pytest-django>=4.8
+ruff>=0.6
