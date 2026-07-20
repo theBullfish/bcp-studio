@@ -1,0 +1,90 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row">
+  <!-- Conversation list -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Conversations</h5>
+        <ul class="list-unstyled mb-0">
+          {% for c in convos %}
+          <li>
+            <a href="?c={{ c.id }}"
+               class="d-flex align-items-center p-2 rounded mb-1 text-body {% if active and c.id == active.id %}bg-soft-primary{% endif %}">
+              <div class="avatar-xs me-3">
+                <span class="avatar-title rounded-circle bg-soft-primary text-primary">
+                  {{ c.title|slice:":1"|default:"#" }}
+                </span>
+              </div>
+              <div class="flex-grow-1 overflow-hidden">
+                <h6 class="mb-0 text-truncate">{{ c.title|default:"Untitled" }}</h6>
+                <small class="text-muted">{{ c.participants.all|length }} people</small>
+              </div>
+            </a>
+          </li>
+          {% empty %}
+          <li class="text-muted py-3">No conversations yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active conversation -->
+  <div class="col-lg-8">
+    <div class="card">
+      {% if active %}
+      <div class="card-body border-bottom">
+        <h5 class="mb-0">{{ active.title|default:"Untitled" }}</h5>
+        <small class="text-muted">
+          {% for p in active.participants.all %}{{ p.get_full_name|default:p.username }}{% if not forloop.last %}, {% endif %}{% endfor %}
+        </small>
+      </div>
+      <div class="card-body" style="max-height:480px; overflow-y:auto;">
+        <ul class="list-unstyled mb-0">
+          {% for m in active.messages.all %}
+          <li class="mb-3">
+            <div class="d-flex">
+              <div class="avatar-xs me-2">
+                <span class="avatar-title rounded-circle bg-soft-primary text-primary">
+                  {{ m.sender.username|slice:":1" }}
+                </span>
+              </div>
+              <div>
+                <div class="d-flex align-items-center mb-1">
+                  <h6 class="mb-0 me-2">{{ m.sender.get_full_name|default:m.sender.username }}</h6>
+                  <small class="text-muted">{{ m.created_at|date:"M j, g:i a" }}</small>
+                </div>
+                <div class="p-2 rounded bg-light d-inline-block">{{ m.body|linebreaksbr }}</div>
+              </div>
+            </div>
+          </li>
+          {% empty %}
+          <li class="text-muted py-3">No messages yet — say hello.</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="card-body border-top">
+        <form method="post" action="{% url 'studio:message_send' active.id %}">
+          {% csrf_token %}
+          <div class="input-group">
+            <input type="text" class="form-control" name="body" placeholder="Type a message…" autocomplete="off" required>
+            <button type="submit" class="btn btn-primary">
+              <i class="bx bx-send"></i> Send
+            </button>
+          </div>
+        </form>
+      </div>
+      {% else %}
+      <div class="card-body text-center py-5">
+        <div class="mb-2" style="font-size:2rem;">💬</div>
+        <h5 class="mb-1">No conversation selected</h5>
+        <p class="text-muted mb-0">Pick a conversation from the left to start chatting.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

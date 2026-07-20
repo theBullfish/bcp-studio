@@ -1,0 +1,141 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row">
+  <!-- Player -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title mb-3">Quick finish — {{ media.label }}</h4>
+        <div class="ratio ratio-16x9 bg-dark rounded mb-3">
+          <video id="player" src="{{ media.url }}" controls preload="metadata"
+                 style="width:100%;height:100%;object-fit:contain;border-radius:.25rem;"></video>
+        </div>
+
+        <!-- Scrubber -->
+        <label class="form-label d-flex justify-content-between mb-1">
+          <span>Playhead</span>
+          <span class="text-muted"><span id="cur">0.00</span>s / <span id="dur">0.00</span>s</span>
+        </label>
+        <input type="range" class="form-range" id="scrub" min="0" max="0" step="0.01" value="0">
+
+        <div class="d-flex gap-2 mt-3">
+          <button type="button" class="btn btn-sm btn-soft-primary" id="setIn">
+            <i class="bx bx-log-in-circle me-1"></i>Set in
+          </button>
+          <button type="button" class="btn btn-sm btn-soft-primary" id="setOut">
+            <i class="bx bx-log-out-circle me-1"></i>Set out
+          </button>
+          <button type="button" class="btn btn-sm btn-light" id="playRange">
+            <i class="bx bx-play me-1"></i>Preview selection
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Trim &amp; caption</h5>
+        <form method="post" action="{% url 'studio:media_apply' media.id %}" id="applyForm">
+          {% csrf_token %}
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="start">In (seconds)</label>
+              <input type="number" min="0" step="0.01" class="form-control" name="start" id="start" value="0">
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="end">Out (seconds)</label>
+              <input type="number" min="0" step="0.01" class="form-control" name="end" id="end" value="0">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="caption">Caption (burned in, optional)</label>
+            <input type="text" class="form-control" name="caption" id="caption" maxlength="200"
+                   placeholder="e.g. Out now — link in bio">
+            <div class="form-text">Rendered centered near the bottom of the frame.</div>
+          </div>
+
+          <div class="alert alert-info py-2 small" role="alert">
+            <i class="bx bx-info-circle me-1"></i>
+            Creates a new finished clip on this project. Your original stays untouched.
+            Without ffmpeg the derived clip still appears (points at the source) so the flow works.
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bx bx-movie-play me-1"></i>Render edit
+            </button>
+            <a href="{% url 'studio:project_detail' project.id %}" class="btn btn-light">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script>
+(function () {
+  var video = document.getElementById('player');
+  var scrub = document.getElementById('scrub');
+  var cur = document.getElementById('cur');
+  var dur = document.getElementById('dur');
+  var startIn = document.getElementById('start');
+  var endIn = document.getElementById('end');
+  if (!video) return;
+
+  var previewing = false;
+
+  function fmt(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+
+  video.addEventListener('loadedmetadata', function () {
+    var d = video.duration || 0;
+    scrub.max = fmt(d);
+    dur.textContent = fmt(d);
+    if (parseFloat(endIn.value) <= 0) endIn.value = fmt(d);
+  });
+
+  video.addEventListener('timeupdate', function () {
+    cur.textContent = fmt(video.currentTime);
+    scrub.value = video.currentTime;
+    // Stop the preview when we pass the out point.
+    if (previewing && video.currentTime >= parseFloat(endIn.value || 0)) {
+      video.pause();
+      previewing = false;
+    }
+  });
+
+  scrub.addEventListener('input', function () {
+    video.currentTime = parseFloat(scrub.value || 0);
+  });
+
+  document.getElementById('setIn').addEventListener('click', function () {
+    startIn.value = fmt(video.currentTime);
+  });
+  document.getElementById('setOut').addEventListener('click', function () {
+    endIn.value = fmt(video.currentTime);
+  });
+  document.getElementById('playRange').addEventListener('click', function () {
+    var s = parseFloat(startIn.value || 0);
+    video.currentTime = s;
+    previewing = true;
+    video.play();
+  });
+
+  document.getElementById('applyForm').addEventListener('submit', function (e) {
+    var s = parseFloat(startIn.value || 0);
+    var en = parseFloat(endIn.value || 0);
+    if (en <= s) {
+      e.preventDefault();
+      alert('Out point must be after the in point.');
+    }
+  });
+})();
+</script>
+{% endblock %}

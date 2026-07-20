@@ -1,0 +1,99 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+
+{% if messages %}
+<div class="row"><div class="col-12">
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ m }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<div class="row justify-content-center">
+  <div class="col-xl-8 col-lg-10">
+
+    {% if mode == "error" %}
+    <div class="card">
+      <div class="card-body text-center">
+        <div class="avatar-md mx-auto mb-4">
+          <span class="avatar-title rounded-circle bg-soft-danger text-danger font-size-24">
+            <i class="bx bx-error-circle"></i>
+          </span>
+        </div>
+        <h5 class="mb-2">Couldn't connect {{ platform_label }}</h5>
+        <p class="text-muted mb-4">{{ detail }}</p>
+        <a href="{% url 'studio:distribution' %}" class="btn btn-primary">
+          Back to distribution
+        </a>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <div class="avatar-sm me-3">
+            <span class="avatar-title rounded-circle bg-soft-primary text-primary font-size-20">
+              <i class="bx bxl-{{ platform|lower }}"></i>
+            </span>
+          </div>
+          <div>
+            <h5 class="card-title mb-0">Connect {{ platform_label }} — {{ client.name }}</h5>
+            <p class="text-muted mb-0">OAuth isn't configured for this platform yet.</p>
+          </div>
+        </div>
+
+        <div class="alert alert-warning" role="alert">
+          <i class="bx bx-info-circle align-middle me-1"></i>
+          Live OAuth for {{ platform_label }} needs the app credential
+          <code>{{ env_name }}</code> (and its secret) set in the environment.
+          Until then you can <strong>mark the channel authorized for development</strong>
+          so the distribution and auto-post flow stays fully testable.
+        </div>
+
+        <form method="post"
+              action="{% url 'studio:connect_start' client_id=client.id platform=platform %}"
+              class="mt-4">
+          {% csrf_token %}
+          <input type="hidden" name="mark_authorized" value="1">
+
+          <div class="mb-3">
+            <label class="form-label">Channel handle</label>
+            <input type="text" name="handle" class="form-control"
+                   placeholder="@{{ client.slug }}"
+                   value="{% if account %}{{ account.handle }}{% else %}{{ handle }}{% endif %}"
+                   {% if not account %}required{% endif %}>
+            <div class="form-text">The @handle the app will post to on this platform.</div>
+          </div>
+
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   name="auto_post" id="auto_post"
+                   {% if account.auto_post %}checked{% endif %}>
+            <label class="form-check-label" for="auto_post">
+              Enable auto-post (publish without a manual push)
+            </label>
+          </div>
+
+          <div class="d-flex">
+            <a href="{% url 'studio:dist_client' client_id=client.id %}"
+               class="btn btn-light me-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+              <i class="bx bx-check-shield align-middle me-1"></i>
+              Mark authorized (dev)
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends 'public/base.html' %}
+{% load static studio_extras %}
+{% block title %}{{ channel.name }} — Watch{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <a href="{% url 'studio:watch_home' %}" class="text-white-50 text-decoration-none">&larr; All channels</a>
+</div>
+
+<div class="card mb-4">
+  <div style="height:180px;background:{% if channel.banner_url %}center/cover no-repeat url('{{ channel.banner_url }}'){% else %}linear-gradient(135deg,#6d28d9,#2563eb){% endif %};border-radius:.5rem .5rem 0 0"></div>
+  <div class="card-body">
+    <h2 class="text-white mb-2">{{ channel.name }}</h2>
+    <p class="text-white-50 mb-0">{{ channel.description }}</p>
+  </div>
+</div>
+
+{% if plans %}
+<h4 class="text-white mb-3">Membership</h4>
+<div class="row mb-4">
+  {% for p in plans %}
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="text-white mb-1">{{ p.name }}</h5>
+        <div class="mb-2"><span class="fs-3 text-white">${{ p.amount_cents|dollars }}</span><span class="text-white-50">/{{ p.interval }}</span></div>
+        {% if p.perks %}<p class="text-white-50 small flex-grow-1">{{ p.perks }}</p>{% else %}<div class="flex-grow-1"></div>{% endif %}
+        <form method="post" action="{% url 'studio:subscribe' p.id %}">
+          {% csrf_token %}
+          <button class="btn btn-primary w-100">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h4 class="text-white mb-3">Videos</h4>
+<div class="row">
+  {% for item in videos %}
+  <div class="col-xl-4 col-md-6 mb-4">
+    <div class="card h-100">
+      <a href="{% url 'studio:watch_video' item.video.id %}" class="text-decoration-none position-relative d-block">
+        <div style="height:150px;background:{% if item.video.thumbnail_url %}center/cover no-repeat url('{{ item.video.thumbnail_url }}'){% else %}#0d0e1c{% endif %};border-radius:.5rem .5rem 0 0"></div>
+        {% if item.locked %}
+        <span class="badge bg-warning position-absolute" style="top:8px;right:8px"><i class="bx bx-lock-alt"></i> {{ item.video.get_visibility_display }}</span>
+        {% endif %}
+      </a>
+      <div class="card-body">
+        <h6 class="mb-1"><a href="{% url 'studio:watch_video' item.video.id %}" class="text-white text-decoration-none">{{ item.video.title }}</a></h6>
+        <p class="text-white-50 small mb-0">{{ item.video.description|truncatechars:80 }}</p>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card"><div class="card-body text-center text-white-50 py-5">No videos yet.</div></div></div>
+  {% endfor %}
+</div>
+{% endblock %}

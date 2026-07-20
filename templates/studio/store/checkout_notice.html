@@ -1,0 +1,38 @@
+{% extends 'public/base.html' %}
+{% load studio_extras %}
+{% block title %}Checkout — Balls &amp; Chunk{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <div class="mb-3"><i class="bx bx-time-five" style="font-size:3rem;color:#f1b44c;"></i></div>
+        <h4 class="text-white">Payments aren't set up yet</h4>
+        <p class="text-white-50">
+          Your order was recorded, but online checkout isn't available right now.
+        </p>
+        {% if error %}<p class="text-white-50 small"><em>{{ error }}</em></p>{% endif %}
+
+        <div class="text-start mt-4 p-3 rounded" style="background:#12132a;">
+          <h6 class="text-white-50 text-uppercase small mb-3">Order #{{ order.id }}</h6>
+          <div class="d-flex justify-content-between text-white">
+            <span>{{ product.name }}</span>
+            <span>${{ price.unit_amount_cents|dollars }}</span>
+          </div>
+          <small class="text-white-50">{{ product.client.name }} · {{ product.get_kind_display }}</small>
+          <hr style="border-color:rgba(255,255,255,.1);">
+          <div class="d-flex justify-content-between text-white fw-bold">
+            <span>Total</span>
+            <span>${{ order.total_cents|dollars }}</span>
+          </div>
+        </div>
+
+        <a href="{% url 'studio:shop' %}" class="btn btn-primary mt-4">
+          <i class="bx bx-arrow-back"></i> Back to store
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

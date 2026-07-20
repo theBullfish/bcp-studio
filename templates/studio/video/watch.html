@@ -1,0 +1,72 @@
+{% extends 'public/base.html' %}
+{% load static studio_extras %}
+{% block title %}{{ video.title }} — Watch{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'studio:watch_channel' channel.slug %}" class="text-white-50 text-decoration-none">&larr; {{ channel.name }}</a>
+</div>
+
+{% if accessible and src %}
+<div class="card mb-3">
+  <div class="card-body p-0">
+    <video id="player" controls playsinline style="width:100%;max-height:70vh;background:#000;border-radius:.5rem"></video>
+  </div>
+</div>
+<h3 class="text-white">{{ video.title }}</h3>
+<p class="text-white-50">{{ video.description }}</p>
+{% else %}
+<div class="card">
+  <div class="card-body text-center py-5">
+    <i class="bx bx-lock-alt" style="font-size:3rem;color:#a78bfa"></i>
+    <h3 class="text-white mt-3">This video is for members</h3>
+    <p class="text-white-50">Subscribe to <strong>{{ channel.name }}</strong> to watch “{{ video.title }}”.</p>
+  </div>
+</div>
+
+<div class="row mt-4">
+  {% for p in plans %}
+  <div class="col-xl-3 col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-body d-flex flex-column">
+        <h5 class="text-white mb-1">{{ p.name }}</h5>
+        <div class="mb-2"><span class="fs-3 text-white">${{ p.amount_cents|dollars }}</span><span class="text-white-50">/{{ p.interval }}</span></div>
+        {% if p.perks %}<p class="text-white-50 small flex-grow-1">{{ p.perks }}</p>{% else %}<div class="flex-grow-1"></div>{% endif %}
+        <form method="post" action="{% url 'studio:subscribe' p.id %}">
+          {% csrf_token %}
+          <button class="btn btn-primary w-100">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card"><div class="card-body text-center text-white-50">No plans available on this channel yet.</div></div></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_javascript %}
+{% if accessible and src %}
+{{ src|json_script:"video-src" }}
+<script src="{% static 'libs/hls.js/hls.min.js' %}"></script>
+<script>
+  (function () {
+    var video = document.getElementById('player');
+    var srcUrl = JSON.parse(document.getElementById('video-src').textContent);
+    if (!video || !srcUrl) return;
+    var isHls = {% if is_hls %}true{% else %}false{% endif %};
+    if (isHls && window.Hls && window.Hls.isSupported()) {
+      var hls = new Hls();
+      hls.loadSource(srcUrl);
+      hls.attachMedia(video);
+    } else if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS (Safari)
+      video.src = srcUrl;
+    } else {
+      video.src = srcUrl;
+    }
+  })();
+</script>
+{% endif %}
+{% endblock %}

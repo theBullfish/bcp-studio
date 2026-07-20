@@ -1,0 +1,290 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+
+{% if messages %}
+<div class="row"><div class="col-12">
+  {% for m in messages %}
+  <div class="alert alert-{{ m.tags|default:'info' }} alert-dismissible fade show" role="alert">
+    {{ m }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+</div></div>
+{% endif %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex flex-wrap align-items-center mb-3">
+      <span class="badge bg-soft-info text-info me-2">{{ client.get_type_display }}</span>
+      <span class="text-muted">{{ client.primary_contact }}</span>
+      <a href="{% url 'studio:distribution' %}" class="ms-auto small">← All clients</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Section 1 — Authorize the app ================= -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-1">1 · Authorize the app</h5>
+        <p class="text-muted">
+          The client authorizes <strong>BCP Studio</strong> to act on their behalf —
+          publishing produced media to their connected channels. Authorizing a
+          channel records who granted access and when. Turn on <em>auto-post</em>
+          to let the app publish without a manual push.
+        </p>
+
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Platform</th>
+                <th>Handle</th>
+                <th>Status</th>
+                <th>Authorized</th>
+                <th class="text-end">Auto-post &amp; authorize</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in channels %}
+              <tr>
+                <td>
+                  <i class="bx bxl-{{ s.platform|lower }} font-size-18 me-1 align-middle"></i>
+                  {{ s.get_platform_display }}
+                </td>
+                <td>{{ s.handle }}</td>
+                <td>
+                  {% if s.connected %}
+                    <span class="badge bg-success">Authorized</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Not authorized</span>
+                  {% endif %}
+                  {% if s.auto_post %}<span class="badge bg-soft-primary text-primary">auto-post</span>{% endif %}
+                </td>
+                <td class="text-muted">
+                  {% if s.authorized_by %}
+                    {{ s.authorized_by.username }}<br>
+                    <small>{{ s.authorized_at|date:"M j, Y H:i" }}</small>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  {% if can_manage %}
+                  <form method="post" action="{% url 'studio:channel_authorize' client.id %}" class="d-inline-flex align-items-center gap-2 justify-content-end">
+                    {% csrf_token %}
+                    <input type="hidden" name="platform" value="{{ s.platform }}">
+                    <input type="hidden" name="handle" value="{{ s.handle }}">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input" type="checkbox" name="auto_post" id="auto{{ s.id }}" {% if s.auto_post %}checked{% endif %}>
+                      <label class="form-check-label small" for="auto{{ s.id }}">auto</label>
+                    </div>
+                    <button class="btn btn-sm btn-primary">
+                      {% if s.connected %}Update{% else %}Authorize{% endif %}
+                    </button>
+                  </form>
+                  <a href="{% url 'studio:connect_start' client.id s.platform %}"
+                     class="btn btn-sm btn-soft-secondary ms-1" title="Connect via the platform's OAuth">
+                    <i class="bx bx-link-external"></i> OAuth
+                  </a>
+                  {% else %}
+                    <span class="text-muted small">read-only</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-muted py-3">No channels connected yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if can_manage %}
+        <hr>
+        <h6 class="mb-2">Add &amp; authorize a new channel</h6>
+        <form method="post" action="{% url 'studio:channel_authorize' client.id %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-md-3">
+            <label class="form-label small mb-1">Platform</label>
+            <select name="platform" class="form-select form-select-sm">
+              {% for val,label in platforms %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small mb-1">Handle</label>
+            <input name="handle" class="form-control form-control-sm" placeholder="@handle" required>
+          </div>
+          <div class="col-md-3">
+            <div class="form-check form-switch mt-3">
+              <input class="form-check-input" type="checkbox" name="auto_post" id="new_auto">
+              <label class="form-check-label small" for="new_auto">Enable auto-post</label>
+            </div>
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-sm btn-primary w-100">
+              <i class="bx bx-plus align-middle me-1"></i>Authorize
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Section 2 — Distribution rules ================= -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-1">2 · Distribution rules</h5>
+        <p class="text-muted">
+          Decide how produced media is divided across platforms. A rule maps a
+          source format (e.g. <code>reel_9x16</code>) to the channels its outputs
+          get posted to.
+        </p>
+
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Source format</th>
+                <th>Platforms</th>
+                <th>Auto-post</th>
+                <th class="text-end">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in rules %}
+              <tr>
+                <td><span class="badge bg-soft-secondary text-body font-size-12"><code>{{ r.source_format }}</code></span></td>
+                <td>
+                  {% for p in r.platforms %}
+                  <span class="badge bg-soft-primary text-primary me-1">
+                    <i class="bx bxl-{{ p|lower }} align-middle"></i> {{ p|title }}
+                  </span>
+                  {% empty %}
+                  <span class="text-muted">none</span>
+                  {% endfor %}
+                </td>
+                <td>
+                  {% if r.auto_post %}<span class="badge bg-success">on</span>
+                  {% else %}<span class="badge bg-secondary">off</span>{% endif %}
+                </td>
+                <td class="text-end">
+                  {% if can_manage %}
+                  <form method="post" action="{% url 'studio:rule_delete' r.id %}" class="d-inline"
+                        onsubmit="return confirm('Delete this distribution rule?');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-danger"><i class="bx bx-trash"></i></button>
+                  </form>
+                  {% else %}
+                    <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted py-3">No distribution rules yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if can_manage %}
+        <hr>
+        <h6 class="mb-2">Add a rule</h6>
+        <form method="post" action="{% url 'studio:rule_new' client.id %}">
+          {% csrf_token %}
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small mb-1">Source format</label>
+              <input name="source_format" class="form-control form-control-sm" placeholder="reel_9x16" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small mb-1 d-block">Platforms</label>
+              <div class="d-flex flex-wrap gap-3">
+                {% for val,label in platforms %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="platforms" value="{{ val }}" id="rp_{{ val }}">
+                  <label class="form-check-label small" for="rp_{{ val }}">{{ label }}</label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" name="auto_post" id="rule_auto">
+                <label class="form-check-label small" for="rule_auto">Auto-post</label>
+              </div>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-sm btn-primary w-100"><i class="bx bx-plus"></i></button>
+            </div>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Section 3 — Platform profiles ================= -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-1">3 · Platform profiles</h5>
+        <p class="text-muted">
+          Per-platform posting defaults — hashtags, cadence and the best times to
+          post — used when the app drafts and schedules content for {{ client.name }}.
+        </p>
+
+        <div class="row">
+          {% for pf in profiles %}
+          <div class="col-lg-6">
+            <div class="border rounded p-3 mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bx bxl-{{ pf.platform|lower }} font-size-20 me-2"></i>
+                <h6 class="mb-0">{{ pf.label }}</h6>
+                {% if pf.profile %}<span class="badge bg-soft-success text-success ms-auto">configured</span>{% endif %}
+              </div>
+              <form method="post" action="{% url 'studio:profile_save' client.id %}" class="row g-2">
+                {% csrf_token %}
+                <input type="hidden" name="platform" value="{{ pf.platform }}">
+                <div class="col-12">
+                  <label class="form-label small mb-1">Default hashtags</label>
+                  <input name="default_hashtags" class="form-control form-control-sm"
+                         value="{{ pf.profile.default_hashtags|default:'' }}"
+                         placeholder="#tag1 #tag2" {% if not can_manage %}disabled{% endif %}>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Posting cadence</label>
+                  <input name="posting_cadence" class="form-control form-control-sm"
+                         value="{{ pf.profile.posting_cadence|default:'' }}"
+                         placeholder="3x/week" {% if not can_manage %}disabled{% endif %}>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small mb-1">Best times</label>
+                  <input name="best_times" class="form-control form-control-sm"
+                         value="{{ pf.profile.best_times|default:'' }}"
+                         placeholder="Tue 9am, Fri 6pm" {% if not can_manage %}disabled{% endif %}>
+                </div>
+                {% if can_manage %}
+                <div class="col-12 text-end">
+                  <button class="btn btn-sm btn-primary">Save {{ pf.label }}</button>
+                </div>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

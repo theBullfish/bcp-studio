@@ -1,0 +1,6 @@
+line-length = 100
+extend-exclude = ["static", "assets", "migrations", "layout", "pages", "skote/asgi.py", "skote/wsgi.py"]
+
+[lint]
+# Focus on real bugs (pyflakes + syntax), not style noise across a large template project.
+select = ["F", "E9"]

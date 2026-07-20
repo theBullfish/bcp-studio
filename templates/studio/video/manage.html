@@ -1,0 +1,160 @@
+{% extends 'partials/base.html' %}
+{% load static studio_extras %}
+
+{% block contents %}
+<div class="row mb-3">
+  <div class="col-12 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newVideo">
+      <i class="bx bx-plus"></i> New video
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Videos -->
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Videos</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>Title</th><th>Channel</th><th>Visibility</th><th>Status</th><th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in videos %}
+              <tr>
+                <td>
+                  <a href="{% url 'studio:watch_video' v.id %}" class="text-body">{{ v.title }}</a>
+                  {% if v.visibility == 'TIER' %}<small class="text-muted d-block">tier {{ v.min_tier }}+</small>{% endif %}
+                </td>
+                <td class="text-muted">{{ v.channel.name }}</td>
+                <td><span class="badge bg-{{ v.viz_badge }}">{{ v.get_visibility_display }}</span></td>
+                <td><span class="badge bg-{{ v.stat_badge }}">{{ v.get_status_display }}</span></td>
+                <td class="text-end">
+                  {% if v.source_url and v.status != 'TRANSCODING' %}
+                  <form method="post" action="{% url 'studio:video_transcode' v.id %}" class="d-inline">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-soft-primary"><i class="bx bx-loader-circle"></i> Transcode</button>
+                  </form>
+                  {% else %}
+                  <span class="text-muted small">—</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center text-muted py-4">No videos yet. Create one to get started.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Channels -->
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Channels</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead><tr><th>Name</th><th>Slug</th><th class="text-end">Videos</th></tr></thead>
+            <tbody>
+              {% for c in channels %}
+              <tr>
+                <td><a href="{% url 'studio:watch_channel' c.slug %}" class="text-body">{{ c.name }}</a></td>
+                <td class="text-muted">/{{ c.slug }}</td>
+                <td class="text-end">{{ c.videos.count }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted py-4">No channels yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plans -->
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Membership plans</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead><tr><th>Plan</th><th>Channel</th><th>Tier</th><th class="text-end">Price</th></tr></thead>
+            <tbody>
+              {% for p in plans %}
+              <tr>
+                <td>{{ p.name }} {% if not p.active %}<span class="badge bg-secondary">inactive</span>{% endif %}</td>
+                <td class="text-muted">{{ p.channel.name }}</td>
+                <td>{{ p.tier }}</td>
+                <td class="text-end">${{ p.amount_cents|dollars }}/{{ p.interval }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">No plans yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New video modal -->
+<div class="modal fade" id="newVideo" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'studio:video_new' %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">New video</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Channel</label>
+          <select name="channel" class="form-select" required>
+            {% for c in channels %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input name="title" class="form-control" placeholder="e.g. Episode 12 — Behind the mix" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="row">
+          <div class="col-6 mb-3">
+            <label class="form-label">Visibility</label>
+            <select name="visibility" class="form-select">
+              {% for value, label in visibilities %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="col-6 mb-3">
+            <label class="form-label">Min tier (for tier+)</label>
+            <input name="min_tier" type="number" min="1" value="1" class="form-control">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Source URL</label>
+          <input name="source_url" class="form-control" placeholder="https://…/master.m3u8 or …/clip.mp4">
+          <small class="text-muted">An .m3u8 plays via hls.js; an .mp4 plays directly. Add a source to enable Transcode.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Create video</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

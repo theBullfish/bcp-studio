@@ -1,0 +1,127 @@
+{% load static %} {% block sidebar %}
+<!-- ========== Left Sidebar Start ========== -->
+<div class="vertical-menu">
+  <div data-simplebar class="h-100">
+    <!--- Sidemenu -->
+    <div id="sidebar-menu">
+      <!-- Left Menu Start -->
+      <ul class="metismenu list-unstyled" id="side-menu">
+        <li class="menu-title" key="t-menu">Studio</li>
+
+        <li>
+          <a href="{% url 'studio:dashboard' %}" class="waves-effect">
+            <i class="bx bx-radio-circle-marked"></i>
+            <span key="t-control-room">Control Room</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:projects' %}" class="waves-effect">
+            <i class="bx bx-folder"></i>
+            <span key="t-projects">Projects &amp; Media</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:plays' %}" class="waves-effect">
+            <i class="bx bx-bolt-circle"></i>
+            <span key="t-plays">AI Plays</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:posts' %}" class="waves-effect">
+            <i class="bx bx-news"></i>
+            <span key="t-posts">Posts &amp; Schedule</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:calendar' %}" class="waves-effect">
+            <i class="bx bx-calendar-event"></i>
+            <span key="t-calendar">Calendar</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:approvals' %}" class="waves-effect">
+            <i class="bx bx-check-shield"></i>
+            <span key="t-approvals">Approvals</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:devices' %}" class="waves-effect">
+            <i class="bx bx-broadcast"></i>
+            <span key="t-devices">Capture Devices</span>
+          </a>
+        </li>
+
+        <li class="menu-title" key="t-commerce">Commerce</li>
+
+        <li>
+          <a href="{% url 'studio:store_manage' %}" class="waves-effect">
+            <i class="bx bx-store"></i>
+            <span key="t-store">Store</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:video_manage' %}" class="waves-effect">
+            <i class="bx bx-play-circle"></i>
+            <span key="t-videos">Video Platform</span>
+          </a>
+        </li>
+
+        <li class="menu-title" key="t-business">Business</li>
+
+        <li>
+          <a href="{% url 'studio:clients' %}" class="waves-effect">
+            <i class="bx bx-diamond"></i>
+            <span key="t-clients">Clients &amp; Brands</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:distribution' %}" class="waves-effect">
+            <i class="bx bx-share-alt"></i>
+            <span key="t-distribution">Channels &amp; Distribution</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:analytics' %}" class="waves-effect">
+            <i class="bx bx-bar-chart-alt-2"></i>
+            <span key="t-analytics">Analytics</span>
+          </a>
+        </li>
+
+        <li class="menu-title" key="t-team">Team</li>
+
+        <li>
+          <a href="{% url 'studio:messages' %}" class="waves-effect">
+            <i class="bx bx-chat"></i>
+            <span key="t-messages">Messages</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:team' %}" class="waves-effect">
+            <i class="bx bx-group"></i>
+            <span key="t-team">Team</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="/admin/" class="waves-effect">
+            <i class="bx bx-cog"></i>
+            <span key="t-admin">Back Office</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <!-- Sidebar -->
+  </div>
+</div>
+<!-- Left Sidebar End -->
+{% endblock sidebar %}

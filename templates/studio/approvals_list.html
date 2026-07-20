@@ -1,0 +1,82 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row">
+  <div class="col-xl-8">
+    <h5 class="mb-3">Your queue</h5>
+    {% for a in mine %}
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <span class="badge bg-soft-primary text-primary me-2">{{ a.post.get_platform_display }}</span>
+          <span class="text-muted">{{ a.post.client.name }}</span>
+          <small class="text-muted ms-auto">{{ a.created_at|timesince }} ago</small>
+        </div>
+        <p class="mb-3">{{ a.post.caption|default:"(no caption)" }}</p>
+
+        <form method="post" action="{% url 'studio:approval_decide' a.id %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label" for="comment-{{ a.id }}">Comment</label>
+            <textarea class="form-control" id="comment-{{ a.id }}" name="comment" rows="2"
+                      placeholder="Optional note for the author…"></textarea>
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" name="decision" value="APPROVED" class="btn btn-success">
+              <i class="bx bx-check"></i> Approve
+            </button>
+            <button type="submit" name="decision" value="CHANGES_REQUESTED" class="btn btn-warning">
+              <i class="bx bx-edit"></i> Request changes
+            </button>
+            <button type="submit" name="decision" value="REJECTED" class="btn btn-danger">
+              <i class="bx bx-x"></i> Reject
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <div class="mb-2" style="font-size:2rem;">🎉</div>
+        <h5 class="mb-1">Nothing to review 🎉</h5>
+        <p class="text-muted mb-0">You're all caught up.</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if all_pending is not None %}
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">All pending (admin)</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>Post</th>
+                <th>Client</th>
+                <th>Reviewer</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for a in all_pending %}
+              <tr>
+                <td><a href="{% url 'studio:post_detail' a.post.id %}" class="text-body">{{ a.post.caption|truncatechars:40|default:"(no caption)" }}</a></td>
+                <td class="text-muted">{{ a.post.client.name }}</td>
+                <td class="text-muted">{{ a.reviewer.get_full_name|default:a.reviewer.username }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted py-3">Nothing pending.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

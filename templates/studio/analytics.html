@@ -1,0 +1,198 @@
+{% extends 'partials/base.html' %}
+{% load static humanize studio_extras %}
+
+{% block contents %}
+<!-- Stat row -->
+<div class="row">
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Revenue (all time)</p>
+            <h4 class="mb-0">${{ revenue_total|floatformat:0|intcomma }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-dollar-circle font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Views</p>
+            <h4 class="mb-0">{{ totals.views|default_if_none:0|intcomma }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-play-circle font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Likes</p>
+            <h4 class="mb-0">{{ totals.likes|default_if_none:0|intcomma }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-like font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Impressions</p>
+            <h4 class="mb-0">{{ totals.impressions|default_if_none:0|intcomma }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-broadcast font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Revenue area chart -->
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Revenue (6 months)</h5>
+        <div id="revenue-chart" class="apex-charts"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue by source donut -->
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Revenue by source</h5>
+        <div id="source-chart" class="apex-charts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Top posts -->
+  <div class="col-xl-{% if can_view_pay and pay_entries %}6{% else %}12{% endif %}">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Top posts</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>Caption</th>
+                <th>Platform</th>
+                <th class="text-end">Views</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in top_posts %}
+              <tr>
+                <td>
+                  <span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;background:{{ p.dot }}"></span>
+                  {{ p.caption|truncatechars:50|default:"(no caption)" }}
+                </td>
+                <td class="text-muted">{{ p.get_platform_display }}</td>
+                <td class="text-end">{{ p.v|default_if_none:0|intcomma }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-muted py-3">No published posts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if can_view_pay and pay_entries %}
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title me-2 mb-0">Payroll (internal)</h5>
+          <span class="badge bg-soft-danger text-danger ms-auto">Internal</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th class="text-end">Amount</th>
+                <th>Period</th>
+                <th>Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in pay_entries %}
+              <tr>
+                <td>{{ e.user.get_full_name|default:e.user.username }}</td>
+                <td class="text-end">${{ e.amount_cents|dollars }}</td>
+                <td class="text-muted">{{ e.period_start|date:"M j" }} – {{ e.period_end|date:"M j" }}</td>
+                <td>
+                  {% if e.paid %}
+                  <span class="badge bg-success">Paid</span>
+                  {% else %}
+                  <span class="badge bg-warning">Pending</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted py-3">No pay entries.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <small class="text-muted d-block mt-2">Internal only — never shown outside the studio.</small>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="{% static 'libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script>
+  var revOptions = {
+    chart: { type: 'area', height: 320, toolbar: { show: false } },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    colors: ['#556ee6'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+    series: [{ name: 'Revenue ($)', data: {{ rev_series|safe }} }],
+    xaxis: { categories: {{ rev_months|safe }} },
+    yaxis: { labels: { formatter: function (v) { return '$' + v.toLocaleString(); } } },
+    tooltip: { y: { formatter: function (v) { return '$' + v.toLocaleString(); } } }
+  };
+  new ApexCharts(document.querySelector("#revenue-chart"), revOptions).render();
+
+  var srcOptions = {
+    chart: { type: 'donut', height: 320 },
+    labels: {{ src_labels|safe }},
+    series: {{ src_values|safe }},
+    colors: ['#556ee6', '#34c38f', '#f1b44c', '#f46a6a', '#50a5f1', '#74788d'],
+    legend: { position: 'bottom' },
+    tooltip: { y: { formatter: function (v) { return '$' + v.toLocaleString(); } } }
+  };
+  new ApexCharts(document.querySelector("#source-chart"), srcOptions).render();
+</script>
+{% endblock %}

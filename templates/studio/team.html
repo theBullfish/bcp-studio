@@ -1,0 +1,66 @@
+{% extends 'partials/base.html' %}
+{% load static studio_extras %}
+
+{% block contents %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Team</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                {% if can_view_pay %}<th class="text-end">Pay</th>{% endif %}
+                {% if can_manage %}<th>Manage</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in members %}
+              <tr>
+                <td>{{ m.get_full_name|default:m.username }}</td>
+                <td class="text-muted">{{ m.email }}</td>
+                <td><span class="badge bg-soft-primary text-primary">{{ m.profile.get_role_display }}</span></td>
+                <td>
+                  {% if m.is_active %}
+                  <span class="badge bg-success">Active</span>
+                  {% else %}
+                  <span class="badge bg-secondary">Inactive</span>
+                  {% endif %}
+                </td>
+                {% if can_view_pay %}
+                <td class="text-end">${{ m.profile.pay_rate_cents|dollars }}</td>
+                {% endif %}
+                {% if can_manage %}
+                <td>
+                  <form method="post" action="{% url 'studio:team_update' m.id %}" class="d-flex align-items-center gap-2">
+                    {% csrf_token %}
+                    <select class="form-select form-select-sm" name="role" style="width:auto;">
+                      {% for value, label in roles %}
+                      <option value="{{ value }}" {% if value == m.profile.role %}selected{% endif %}>{{ label }}</option>
+                      {% endfor %}
+                    </select>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="active" id="active-{{ m.id }}" {% if m.is_active %}checked{% endif %}>
+                      <label class="form-check-label" for="active-{{ m.id }}">Active</label>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                  </form>
+                </td>
+                {% endif %}
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-muted py-3">No team members.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
