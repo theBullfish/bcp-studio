@@ -1,0 +1,119 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row justify-content-center">
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-4">Compose a post</h5>
+        <form method="post" action="{% url 'studio:post_compose' %}">
+          {% csrf_token %}
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="client">Client</label>
+              <select class="form-select" id="client" name="client" required>
+                {% for c in clients %}
+                <option value="{{ c.id }}"
+                        data-hashtags="{{ c.brand_kit.hashtags_csv }}"
+                        data-tone="{{ c.brand_kit.tone_of_voice }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="platform">Platform</label>
+              <select class="form-select" id="platform" name="platform" required>
+                {% for value, label in platforms %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="project">Project <span class="text-muted">(optional)</span></label>
+            <select class="form-select" id="project" name="project">
+              <option value="">— No project —</option>
+              {% for p in projects %}
+              <option value="{{ p.id }}">{{ p.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="summary">What's this about? (the AI writes from this)</label>
+            <textarea class="form-control" id="summary" name="summary" rows="3"
+                      placeholder="A quick note on the moment, bit, or angle…"></textarea>
+          </div>
+
+          <div class="mb-2 d-flex align-items-center">
+            <button type="button" class="btn btn-soft-primary btn-sm" id="gen-caption">
+              <i class="bx bx-magic-wand"></i> ✨ Auto-write caption
+            </button>
+            <small class="text-muted ms-2" id="gen-note"></small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="caption">Caption</label>
+            <textarea class="form-control" id="caption" name="caption" rows="4"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="hashtags">Hashtags</label>
+            <input type="text" class="form-control" id="hashtags" name="hashtags"
+                   placeholder="#one #two #three">
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="scheduled_at">Schedule for</label>
+            <input type="datetime-local" class="form-control" id="scheduled_at" name="scheduled_at">
+          </div>
+
+          <div class="d-flex">
+            <button type="submit" name="action" value="draft" class="btn btn-light">
+              <i class="bx bx-save"></i> Save draft
+            </button>
+            <button type="submit" name="action" value="schedule" class="btn btn-primary ms-2">
+              <i class="bx bx-calendar-check"></i> Schedule
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script>
+  (function () {
+    var CSRF = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    var btn = document.getElementById('gen-caption');
+    var note = document.getElementById('gen-note');
+
+    btn.addEventListener('click', function () {
+      var client = document.getElementById('client').value;
+      var platform = document.getElementById('platform').value;
+      var summary = document.getElementById('summary').value;
+
+      btn.disabled = true;
+      note.textContent = 'writing…';
+
+      fetch('{% url 'studio:caption_generate' %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ client: client, platform: platform, summary: summary })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          document.getElementById('caption').value = data.caption || '';
+          document.getElementById('hashtags').value = data.hashtags || '';
+          note.textContent = data.generated_by ? 'written by ' + data.generated_by : '';
+        })
+        .catch(function () { note.textContent = 'could not generate caption'; })
+        .finally(function () { btn.disabled = false; });
+    });
+  })();
+</script>
+{% endblock %}

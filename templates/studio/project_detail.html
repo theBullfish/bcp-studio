@@ -1,0 +1,172 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<!-- Header -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <h4 class="mb-0 me-2">{{ project.title }}</h4>
+          <span class="badge bg-{{ project.badge }}">{{ project.get_status_display }}</span>
+        </div>
+        <p class="text-muted mb-2"><i class="bx bx-buildings me-1"></i>{{ project.client.name }}</p>
+        <p class="mb-0">{{ project.summary|default:"No summary yet." }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Source media -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Source media</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr><th>Label</th><th>Kind</th><th>Duration</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for m in source_media %}
+              <tr>
+                <td>{{ m.label }}</td>
+                <td><span class="badge bg-soft-primary text-primary">{{ m.get_kind_display }}</span></td>
+                <td class="text-muted">{% if m.duration_ms %}{{ m.duration_ms|floatformat:0 }} ms{% else %}—{% endif %}</td>
+                <td class="text-muted">{{ m.status }}</td>
+                <td class="text-end">{% if m.url %}<a href="{{ m.url }}" target="_blank" class="text-body"><i class="bx bx-link-external"></i></a>{% endif %}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-muted py-3">No source media yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <hr>
+        <form method="post" action="{% url 'studio:media_add' project.id %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-md-3">
+            <label class="form-label">Kind</label>
+            <select name="kind" class="form-select">
+              <option value="VIDEO">Video</option>
+              <option value="AUDIO">Audio</option>
+              <option value="IMAGE">Image</option>
+              <option value="DOCUMENT">Document</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Label</label>
+            <input name="label" class="form-control" placeholder="Raw take" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">URL</label>
+            <input type="url" name="url" class="form-control" placeholder="https://…">
+          </div>
+          <div class="col-md-2">
+            <button class="btn btn-primary w-100"><i class="bx bx-plus"></i> Add media</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- AI Plays -->
+  {% if can_run %}
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bx bx-bolt-circle text-warning me-1"></i>AI Plays</h5>
+        {% for play in plays %}
+        <div class="border rounded p-3 mb-2">
+          <div class="d-flex align-items-start">
+            <div class="flex-grow-1">
+              <h6 class="mb-1">{{ play.name }}</h6>
+              <p class="text-muted small mb-2">{{ play.description }}</p>
+              <div>
+                {% for out in play.outputs %}
+                <span class="badge bg-soft-info text-info me-1">{{ out }}</span>
+                {% endfor %}
+              </div>
+            </div>
+            <form method="post" action="{% url 'studio:play_run' project.id %}" class="ms-3">
+              {% csrf_token %}
+              <input type="hidden" name="play" value="{{ play.id }}">
+              <button class="btn btn-sm btn-primary"><i class="bx bx-play"></i> Run</button>
+            </form>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">No plays available.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Generated variants -->
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Generated variants</h5>
+        <div class="row">
+          {% for d in derived %}
+          <div class="col-sm-6">
+            <div class="border rounded p-3 mb-2">
+              <span class="badge bg-soft-success text-success mb-2">{{ d.format }}</span>
+              <h6 class="mb-1">{{ d.label }}</h6>
+              <small class="text-muted d-block">{{ d.get_kind_display }}</small>
+              {% if d.play_run.play.name %}<small class="text-muted">via {{ d.play_run.play.name }}</small>{% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div class="col-12"><p class="text-muted mb-0">No variants generated yet. Run a play above.</p></div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Runs -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Runs</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr><th>Play</th><th>Status</th><th>Progress</th><th class="text-end">When</th></tr>
+            </thead>
+            <tbody>
+              {% for r in runs %}
+              <tr>
+                <td>{{ r.play.name }}</td>
+                <td>
+                  <span class="badge bg-{% if r.status == 'SUCCEEDED' %}success{% elif r.status == 'FAILED' %}danger{% elif r.status == 'RUNNING' %}info{% else %}secondary{% endif %}">
+                    {{ r.get_status_display }}
+                  </span>
+                </td>
+                <td style="min-width:120px">
+                  <div class="progress" style="height:6px">
+                    <div class="progress-bar" role="progressbar" style="width: {{ r.progress }}%"></div>
+                  </div>
+                </td>
+                <td class="text-muted text-end">{{ r.created_at|timesince }} ago</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-muted py-3">No runs yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
