@@ -24,13 +24,27 @@ but not connected to a real external service yet.
 - [x] Analytics (ApexCharts revenue + by-source, top posts, private payroll)
 - [x] Messaging (chat UI) + Team (roles)
 
-## Phase 3 — Make it real  ⏳ next
-- [ ] Object storage for media (S3/R2) + real upload pipeline
-- [ ] Worker: transcription (whisper) + highlight/scene detection for smarter cuts
-- [ ] In-browser quick-finish editor (trim / caption / brand overlay)
-- [ ] Platform providers: OAuth + publish for Instagram, TikTok, YouTube, X
-- [ ] Celery + beat: publish due posts, poll live metrics, ingest trends
-- [ ] Notifications (email/push), realtime messaging
+## Phase 3 — The five pillars  ✅ done (first pass — see docs/PILLARS.md)
+- [x] **Capture → sync (Tailscale)**: Device model + key-authed `/ingest/` API +
+      `syncagent/agent.py` (watches a folder, resumable upload over the tailnet,
+      files land as MediaAssets on a project)
+- [x] **Socials & distribution**: per-client channels, distribution rules
+      (format → platforms), per-platform profiles
+- [x] **Client-as-tenant + authorize the app**: client types + per-channel
+      authorization (who/when) + auto-post toggle
+- [x] **Store (Stripe)**: Product/Price/Order + hosted Checkout (reuses GritBox
+      account) + webhook fulfillment + public storefront
+- [x] **Paid video platform**: Channels/Videos/tiers, membership subscriptions,
+      access-gated self-hosted HLS (ffmpeg transcode + hls.js player)
+
+## Phase 4 — Make the pillars production-grade  ⏳ next
+- [ ] Real per-platform OAuth token exchange (the connect flow slots into the
+      existing authorization model) + real publish providers
+- [ ] Object storage (S3/R2) for media + HLS segments; signed/expiring URLs
+- [ ] Celery: move transcode + auto-posting + metric polling off the request path
+- [ ] Stripe: live keys/secrets via SOPS, subscription lifecycle webhooks (renew/cancel)
+- [ ] CDN in front of HLS; transcription (whisper) + smarter highlight detection
+- [ ] In-browser quick-finish editor; notifications (email/push)
 
 ## Phase 4 — Scale &amp; polish
 - [ ] Stripe billing per client / usage
