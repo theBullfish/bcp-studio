@@ -244,3 +244,20 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     }
 }
+
+# --- BCP Studio: payments (Stripe — reuses the GritBox account) --------------
+# Keys come from env/secrets; never hardcode. Without them, the store and paid
+# video still render and the app runs — checkout just returns a helpful notice.
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+# Media / ingest
+import os as _os
+MEDIA_ROOT = _os.getenv("MEDIA_ROOT", str(BASE_DIR / "media"))
+MEDIA_URL = "/media/"
+# Local HLS output for the paid video platform
+HLS_ROOT = _os.getenv("HLS_ROOT", str(BASE_DIR / "media" / "hls"))
+# Max ingest upload size guard (bytes) — 0 = unlimited
+INGEST_MAX_BYTES = int(_os.getenv("INGEST_MAX_BYTES", "0"))

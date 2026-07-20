@@ -166,3 +166,33 @@ def generate_caption(summary: str, platform: str, tone: str = "", hashtags: str 
         except Exception:
             pass
     return {"caption": _template_caption(summary, platform), "hashtags": tags, "generated_by": "template"}
+
+
+# ---------------------------------------------------------------------------
+# HLS transcode — for the paid video platform (self-hosted streaming)
+# ---------------------------------------------------------------------------
+
+
+def transcode_to_hls(source_path: str, out_dir: str, name: str = "master") -> tuple[str | None, bool]:
+    """Transcode a source video to an HLS playlist for adaptive streaming.
+
+    Returns (playlist_path, real). Without ffmpeg or a real source, returns
+    (None, False) and the caller marks the video as pending — the platform
+    still lists it. In production this runs in a Celery task.
+    """
+    if not (ffmpeg_available() and source_path and os.path.exists(source_path)):
+        return None, False
+    os.makedirs(out_dir, exist_ok=True)
+    playlist = os.path.join(out_dir, f"{name}.m3u8")
+    cmd = [
+        "ffmpeg", "-y", "-i", source_path,
+        "-c:v", "h264", "-c:a", "aac",
+        "-hls_time", "6", "-hls_playlist_type", "vod",
+        "-hls_segment_filename", os.path.join(out_dir, f"{name}_%03d.ts"),
+        playlist,
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, timeout=600)
+        return playlist, True
+    except Exception:
+        return None, False

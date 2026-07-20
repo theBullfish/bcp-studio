@@ -1,0 +1,117 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row mb-3">
+  <div class="col-12 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newDevice">
+      <i class="bx bx-plus"></i> New device
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title me-2">Capture devices</h5>
+          <span class="ms-auto badge bg-soft-primary text-primary">Tailscale record → sync</span>
+        </div>
+        <p class="text-muted">
+          A device is a machine on your tailnet (e.g. a recording laptop) trusted to push
+          media in. Install the sync agent on it, point it at a watch folder, and every new
+          recording uploads over Tailscale and becomes a media asset here.
+        </p>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Client</th>
+                <th>Target project</th>
+                <th>Status</th>
+                <th>Last seen</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in devices %}
+              <tr>
+                <td><a href="{% url 'device_page' d.id %}" class="text-body fw-medium">{{ d.name }}</a></td>
+                <td class="text-muted">{{ d.client.name|default:"—" }}</td>
+                <td class="text-muted">{{ d.target_project.title|default:"Auto (Inbox)" }}</td>
+                <td>
+                  {% if d.active %}
+                    <span class="badge bg-success">Active</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Disabled</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted">
+                  {% if d.last_seen %}{{ d.last_seen|timesince }} ago{% else %}never{% endif %}
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'device_page' d.id %}" class="btn btn-sm btn-soft-primary">
+                    <i class="bx bx-cog"></i> Setup
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-4">No devices yet. Add one to get an ingest key.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New device modal -->
+<div class="modal fade" id="newDevice" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'device_new' %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">New capture device</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Device name</label>
+          <input name="name" class="form-control" placeholder="e.g. Studio MacBook" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Client <span class="text-muted">(optional)</span></label>
+          <select name="client" class="form-select">
+            <option value="">— none —</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Target project <span class="text-muted">(optional)</span></label>
+          <select name="target_project" class="form-select">
+            <option value="">— auto: create an Inbox project —</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}">{{ p.title }} · {{ p.client.name }}</option>
+            {% endfor %}
+          </select>
+          <small class="text-muted">Where arriving files land. Blank = an "Inbox — &lt;device&gt;" project.</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Auto-run play <span class="text-muted">(optional)</span></label>
+          <input name="auto_run_play" class="form-control" placeholder="play key, e.g. reels_cut">
+          <small class="text-muted">Play key to run automatically when new media arrives.</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Create device</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

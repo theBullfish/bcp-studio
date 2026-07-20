@@ -64,9 +64,27 @@ class Profile(models.Model):
 # ---------------------------------------------------------------------------
 
 
+class ClientType(models.TextChoices):
+    ARTIST = "ARTIST", "Artist"
+    GROUP = "GROUP", "Group / Band"
+    LABEL = "LABEL", "Label"
+    NEWS_AGENCY = "NEWS_AGENCY", "News agency"
+    BUSINESS = "BUSINESS", "Business"
+    CREATOR = "CREATOR", "Creator"
+
+
 class Client(models.Model):
+    """A tenant: an artist, group, agency or business the studio produces for.
+
+    An authorized rep can grant the app permission to act on their channels
+    (see SocialAccount.authorized_by) — that's the 'log in as the client and
+    let the app do stuff' flow.
+    """
+
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
+    type = models.CharField(max_length=20, choices=ClientType.choices, default=ClientType.ARTIST)
+    primary_contact = models.EmailField(blank=True)
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -151,6 +169,14 @@ class SocialAccount(models.Model):
     connected = models.BooleanField(default=False)
     access_token = models.CharField(max_length=500, blank=True)
     refresh_token = models.CharField(max_length=500, blank=True)
+    token_expires = models.DateTimeField(null=True, blank=True)
+    scopes = models.CharField(max_length=500, blank=True)
+    # Who authorized the app to act on this channel, and when.
+    authorized_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="authorized_channels"
+    )
+    authorized_at = models.DateTimeField(null=True, blank=True)
+    auto_post = models.BooleanField(default=False)  # publish without manual push
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -158,6 +184,40 @@ class SocialAccount(models.Model):
 
     def __str__(self):
         return f"{self.get_platform_display()} {self.handle}"
+
+
+class DistributionRule(models.Model):
+    """How a produced format is routed to platforms for a client.
+
+    e.g. source_format 'reel_9x16' -> Instagram + TikTok + YouTube.
+    Drives which channels a play's outputs get posted to.
+    """
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="distribution_rules")
+    source_format = models.CharField(max_length=40)  # e.g. reel_9x16, square_1x1
+    platforms = models.JSONField(default=list)        # ["INSTAGRAM","TIKTOK",...]
+    auto_post = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.client.name}: {self.source_format} → {', '.join(self.platforms)}"
+
+
+class PlatformProfile(models.Model):
+    """Per-client, per-platform posting policy/defaults."""
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="platform_profiles")
+    platform = models.CharField(max_length=20, choices=Platform.choices)
+    default_hashtags = models.CharField(max_length=500, blank=True)
+    posting_cadence = models.CharField(max_length=120, blank=True)  # e.g. "3x/week, 9am"
+    best_times = models.CharField(max_length=200, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ("client", "platform")
+
+    def __str__(self):
+        return f"{self.client.name} · {self.get_platform_display()}"
 
 
 # ---------------------------------------------------------------------------
@@ -483,3 +543,14 @@ class AuditLog(models.Model):
     entity = models.CharField(max_length=120)
     entity_id = models.CharField(max_length=60, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+# Pillar model modules (store, paid video, ingest) — imported so Django and the
+# admin discover them as part of the `studio` app.
+from .commerce_models import (  # noqa: E402,F401
+    Order, OrderItem, Price, Product, StoreCustomer,
+)
+from .video_models import (  # noqa: E402,F401
+    Channel, Membership, MembershipPlan, Video, VideoView,
+)
+from .ingest_models import Device, IngestedFile  # noqa: E402,F401

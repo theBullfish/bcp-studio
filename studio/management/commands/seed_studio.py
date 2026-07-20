@@ -231,5 +231,77 @@ class Command(BaseCommand):
             ]:
                 models.Message.objects.create(conversation=convo, sender=sender, body=body)
 
+        # ---- Store: products + prices ----------------------------------
+        if models.Product.objects.count() == 0:
+            catalog = [
+                ("Gravel — Limited Vinyl", "PHYSICAL", 3200),
+                ("Studio Hoodie", "PHYSICAL", 5500),
+                ("'Gravel' Digital Single", "DIGITAL", 199),
+                ("Rooftop Live — Ticket", "TICKET", 2500),
+            ]
+            for i, (name, kind, cents) in enumerate(catalog):
+                client = clients[i % len(clients)]
+                prod = models.Product.objects.create(
+                    client=client, name=name, slug=f"{client.slug}-{i}",
+                    kind=kind, description="Official Balls & Chunk merch.",
+                    image_url="", active=True,
+                )
+                models.Price.objects.create(product=prod, unit_amount_cents=cents, active=True)
+            self.stdout.write("  store ✓")
+
+        # ---- Paid video: channel + plans + videos ----------------------
+        if models.Channel.objects.count() == 0:
+            bc = clients[0]
+            channel = models.Channel.objects.create(
+                client=bc, name="Balls & Chunk TV", slug="bc-tv",
+                description="Behind the scenes, full sessions, and members-only cuts.",
+            )
+            models.MembershipPlan.objects.create(
+                channel=channel, name="Supporter", tier=1, amount_cents=500, interval="month",
+                perks="Members-only videos, early access.",
+            )
+            models.MembershipPlan.objects.create(
+                channel=channel, name="Backstage", tier=2, amount_cents=1500, interval="month",
+                perks="Everything in Supporter + full unedited sessions + monthly hangout.",
+            )
+            for i, (title, vis) in enumerate([
+                ("Studio Vlog — Ep. 12 (Free)", "PUBLIC"),
+                ("Full Session: 'Gravel' (Members)", "MEMBERS"),
+                ("Backstage: Rooftop Rehearsal (Tier 2)", "TIER"),
+            ]):
+                models.Video.objects.create(
+                    channel=channel, title=title, slug=f"v{i}",
+                    description="Self-hosted on the BC servers.",
+                    source_url="https://example.com/demo.mp4",
+                    visibility=vis, min_tier=2 if vis == "TIER" else 1,
+                    status="READY", published_at=now - timedelta(days=i),
+                )
+            self.stdout.write("  video platform ✓")
+
+        # ---- Distribution rules + platform profiles --------------------
+        if models.DistributionRule.objects.count() == 0:
+            for client in clients:
+                models.DistributionRule.objects.create(
+                    client=client, source_format="reel_9x16",
+                    platforms=["INSTAGRAM", "TIKTOK", "YOUTUBE"], auto_post=True, active=True)
+                models.DistributionRule.objects.create(
+                    client=client, source_format="square_1x1",
+                    platforms=["INSTAGRAM", "FACEBOOK"], auto_post=False, active=True)
+                for plat in ["INSTAGRAM", "TIKTOK"]:
+                    models.PlatformProfile.objects.get_or_create(
+                        client=client, platform=plat,
+                        defaults={"posting_cadence": "3x/week", "best_times": "9am, 6pm",
+                                  "default_hashtags": "#ballsandchunk #newmusic"})
+            self.stdout.write("  distribution ✓")
+
+        # ---- Capture device (Tailscale sync) ---------------------------
+        if models.Device.objects.count() == 0:
+            models.Device.objects.create(
+                name="Brad's MacBook (field)", client=clients[0],
+                target_project=models.Project.objects.first(),
+                tailnet_host="temple.tailnet.ts.net", auto_run_play="shorts_pack",
+            )
+            self.stdout.write("  capture device ✓")
+
         self.stdout.write(self.style.SUCCESS("Seed complete."))
         self.stdout.write("Login: owner@ballsandchunk.com / chunk1234 (or username 'owner')")
