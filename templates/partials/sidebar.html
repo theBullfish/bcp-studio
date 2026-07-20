@@ -50,12 +50,42 @@
           </a>
         </li>
 
+        <li>
+          <a href="{% url 'studio:devices' %}" class="waves-effect">
+            <i class="bx bx-broadcast"></i>
+            <span key="t-devices">Capture Devices</span>
+          </a>
+        </li>
+
+        <li class="menu-title" key="t-commerce">Commerce</li>
+
+        <li>
+          <a href="{% url 'studio:store_manage' %}" class="waves-effect">
+            <i class="bx bx-store"></i>
+            <span key="t-store">Store</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:video_manage' %}" class="waves-effect">
+            <i class="bx bx-play-circle"></i>
+            <span key="t-videos">Video Platform</span>
+          </a>
+        </li>
+
         <li class="menu-title" key="t-business">Business</li>
 
         <li>
           <a href="{% url 'studio:clients' %}" class="waves-effect">
             <i class="bx bx-diamond"></i>
             <span key="t-clients">Clients &amp; Brands</span>
+          </a>
+        </li>
+
+        <li>
+          <a href="{% url 'studio:distribution' %}" class="waves-effect">
+            <i class="bx bx-share-alt"></i>
+            <span key="t-distribution">Channels &amp; Distribution</span>
           </a>
         </li>
 

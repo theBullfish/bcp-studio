@@ -31,7 +31,7 @@
               {% for c in clients %}
               <tr>
                 <td>
-                  <a href="{% url 'dist_client' c.id %}" class="text-body fw-medium">{{ c.name }}</a>
+                  <a href="{% url 'studio:dist_client' c.id %}" class="text-body fw-medium">{{ c.name }}</a>
                 </td>
                 <td><span class="badge bg-soft-info text-info">{{ c.get_type_display }}</span></td>
                 <td class="text-center">
@@ -45,7 +45,7 @@
                   <span class="badge bg-soft-primary text-primary">{{ c.n_rules }}</span>
                 </td>
                 <td class="text-end">
-                  <a href="{% url 'dist_client' c.id %}" class="btn btn-sm btn-outline-primary">
+                  <a href="{% url 'studio:dist_client' c.id %}" class="btn btn-sm btn-outline-primary">
                     <i class="bx bx-slider-alt align-middle me-1"></i>Manage
                   </a>
                 </td>

@@ -104,10 +104,10 @@ def channel_authorize(request, client_id):
     """
     client = get_object_or_404(models.Client, id=client_id)
     if request.method != "POST":
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
     if not _can(request.user, Role.ADMIN):
         messages.error(request, "You don't have permission to authorize channels.")
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
 
     platform = request.POST.get("platform")
     handle = (request.POST.get("handle") or "").strip()
@@ -130,7 +130,7 @@ def channel_authorize(request, client_id):
     else:
         messages.error(request, "Pick a platform and enter a handle to authorize.")
 
-    return redirect("dist_client", client_id=client.id)
+    return redirect("studio:dist_client", client_id=client.id)
 
 
 @login_required
@@ -138,10 +138,10 @@ def rule_new(request, client_id):
     """Create a distribution rule: source_format -> platforms."""
     client = get_object_or_404(models.Client, id=client_id)
     if request.method != "POST":
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
     if not _can(request.user, Role.PRODUCER):
         messages.error(request, "You don't have permission to edit distribution rules.")
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
 
     source_format = (request.POST.get("source_format") or "").strip()
     platforms = request.POST.getlist("platforms")
@@ -158,7 +158,7 @@ def rule_new(request, client_id):
     else:
         messages.error(request, "Enter a source format and pick at least one platform.")
 
-    return redirect("dist_client", client_id=client.id)
+    return redirect("studio:dist_client", client_id=client.id)
 
 
 @login_required
@@ -167,14 +167,14 @@ def rule_delete(request, rule_id):
     rule = get_object_or_404(models.DistributionRule, id=rule_id)
     client_id = rule.client_id
     if request.method != "POST":
-        return redirect("dist_client", client_id=client_id)
+        return redirect("studio:dist_client", client_id=client_id)
     if not _can(request.user, Role.PRODUCER):
         messages.error(request, "You don't have permission to delete distribution rules.")
-        return redirect("dist_client", client_id=client_id)
+        return redirect("studio:dist_client", client_id=client_id)
 
     rule.delete()
     messages.success(request, "Distribution rule removed.")
-    return redirect("dist_client", client_id=client_id)
+    return redirect("studio:dist_client", client_id=client_id)
 
 
 @login_required
@@ -182,16 +182,16 @@ def profile_save(request, client_id):
     """Upsert the PlatformProfile for (client, platform)."""
     client = get_object_or_404(models.Client, id=client_id)
     if request.method != "POST":
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
     if not _can(request.user, Role.PRODUCER):
         messages.error(request, "You don't have permission to edit platform profiles.")
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
 
     platform = request.POST.get("platform")
     valid = {v for v, _ in models.Platform.choices}
     if platform not in valid:
         messages.error(request, "Unknown platform.")
-        return redirect("dist_client", client_id=client.id)
+        return redirect("studio:dist_client", client_id=client.id)
 
     profile, _created = models.PlatformProfile.objects.get_or_create(
         client=client, platform=platform,
@@ -204,4 +204,4 @@ def profile_save(request, client_id):
     profile.save()
 
     messages.success(request, f"{profile.get_platform_display()} profile saved.")
-    return redirect("dist_client", client_id=client.id)
+    return redirect("studio:dist_client", client_id=client.id)

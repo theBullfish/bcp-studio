@@ -38,7 +38,7 @@
             <tbody>
               {% for d in devices %}
               <tr>
-                <td><a href="{% url 'device_page' d.id %}" class="text-body fw-medium">{{ d.name }}</a></td>
+                <td><a href="{% url 'studio:device_page' d.id %}" class="text-body fw-medium">{{ d.name }}</a></td>
                 <td class="text-muted">{{ d.client.name|default:"—" }}</td>
                 <td class="text-muted">{{ d.target_project.title|default:"Auto (Inbox)" }}</td>
                 <td>
@@ -52,7 +52,7 @@
                   {% if d.last_seen %}{{ d.last_seen|timesince }} ago{% else %}never{% endif %}
                 </td>
                 <td class="text-end">
-                  <a href="{% url 'device_page' d.id %}" class="btn btn-sm btn-soft-primary">
+                  <a href="{% url 'studio:device_page' d.id %}" class="btn btn-sm btn-soft-primary">
                     <i class="bx bx-cog"></i> Setup
                   </a>
                 </td>
@@ -71,7 +71,7 @@
 <!-- New device modal -->
 <div class="modal fade" id="newDevice" tabindex="-1">
   <div class="modal-dialog">
-    <form method="post" action="{% url 'device_new' %}" class="modal-content">
+    <form method="post" action="{% url 'studio:device_new' %}" class="modal-content">
       {% csrf_token %}
       <div class="modal-header">
         <h5 class="modal-title">New capture device</h5>

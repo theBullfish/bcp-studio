@@ -19,7 +19,7 @@
     <div class="d-flex flex-wrap align-items-center mb-3">
       <span class="badge bg-soft-info text-info me-2">{{ client.get_type_display }}</span>
       <span class="text-muted">{{ client.primary_contact }}</span>
-      <a href="{% url 'distribution' %}" class="ms-auto small">← All clients</a>
+      <a href="{% url 'studio:distribution' %}" class="ms-auto small">← All clients</a>
     </div>
   </div>
 </div>
@@ -74,7 +74,7 @@
                 </td>
                 <td class="text-end">
                   {% if can_manage %}
-                  <form method="post" action="{% url 'channel_authorize' client.id %}" class="d-inline-flex align-items-center gap-2 justify-content-end">
+                  <form method="post" action="{% url 'studio:channel_authorize' client.id %}" class="d-inline-flex align-items-center gap-2 justify-content-end">
                     {% csrf_token %}
                     <input type="hidden" name="platform" value="{{ s.platform }}">
                     <input type="hidden" name="handle" value="{{ s.handle }}">
@@ -101,7 +101,7 @@
         {% if can_manage %}
         <hr>
         <h6 class="mb-2">Add &amp; authorize a new channel</h6>
-        <form method="post" action="{% url 'channel_authorize' client.id %}" class="row g-2 align-items-end">
+        <form method="post" action="{% url 'studio:channel_authorize' client.id %}" class="row g-2 align-items-end">
           {% csrf_token %}
           <div class="col-md-3">
             <label class="form-label small mb-1">Platform</label>
@@ -172,7 +172,7 @@
                 </td>
                 <td class="text-end">
                   {% if can_manage %}
-                  <form method="post" action="{% url 'rule_delete' r.id %}" class="d-inline"
+                  <form method="post" action="{% url 'studio:rule_delete' r.id %}" class="d-inline"
                         onsubmit="return confirm('Delete this distribution rule?');">
                     {% csrf_token %}
                     <button class="btn btn-sm btn-outline-danger"><i class="bx bx-trash"></i></button>
@@ -192,7 +192,7 @@
         {% if can_manage %}
         <hr>
         <h6 class="mb-2">Add a rule</h6>
-        <form method="post" action="{% url 'rule_new' client.id %}">
+        <form method="post" action="{% url 'studio:rule_new' client.id %}">
           {% csrf_token %}
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -247,7 +247,7 @@
                 <h6 class="mb-0">{{ pf.label }}</h6>
                 {% if pf.profile %}<span class="badge bg-soft-success text-success ms-auto">configured</span>{% endif %}
               </div>
-              <form method="post" action="{% url 'profile_save' client.id %}" class="row g-2">
+              <form method="post" action="{% url 'studio:profile_save' client.id %}" class="row g-2">
                 {% csrf_token %}
                 <input type="hidden" name="platform" value="{{ pf.platform }}">
                 <div class="col-12">

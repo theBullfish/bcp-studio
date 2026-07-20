@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
@@ -51,4 +51,10 @@ urlpatterns = [
     # Team
     path("team/", views.team_list, name="team"),
     path("team/<int:user_id>/update/", views.team_update, name="team_update"),
+
+    # New pillars (self-contained modules; names resolve under the studio namespace)
+    path("", include("studio.urls_store")),
+    path("", include("studio.urls_video")),
+    path("", include("studio.urls_socials")),
+    path("", include("studio.urls_ingest")),
 ]

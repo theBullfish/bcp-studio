@@ -98,11 +98,11 @@ def devices(request):
 def device_new(request):
     """Create a Device. api_key auto-generates on the model."""
     if request.method != "POST" or not _can(request.user, Role.PRODUCER):
-        return redirect("devices")
+        return redirect("studio:devices")
 
     name = (request.POST.get("name") or "").strip()
     if not name:
-        return redirect("devices")
+        return redirect("studio:devices")
 
     client = None
     client_id = request.POST.get("client")
@@ -120,7 +120,7 @@ def device_new(request):
         target_project=target_project,
         auto_run_play=(request.POST.get("auto_run_play") or "").strip(),
     )
-    return redirect("device_page", device_id=device.id)
+    return redirect("studio:device_page", device_id=device.id)
 
 
 @login_required
