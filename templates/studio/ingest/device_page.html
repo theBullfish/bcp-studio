@@ -1,0 +1,120 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row">
+  <div class="col-xl-5">
+    <!-- Device / key card -->
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title me-2">{{ device.name }}</h5>
+          {% if device.active %}
+            <span class="ms-auto badge bg-success">Active</span>
+          {% else %}
+            <span class="ms-auto badge bg-secondary">Disabled</span>
+          {% endif %}
+        </div>
+
+        <dl class="row mb-3">
+          <dt class="col-sm-4 text-muted">Client</dt>
+          <dd class="col-sm-8">{{ device.client.name|default:"—" }}</dd>
+          <dt class="col-sm-4 text-muted">Target project</dt>
+          <dd class="col-sm-8">{{ device.target_project.title|default:"Auto (Inbox project)" }}</dd>
+          <dt class="col-sm-4 text-muted">Auto-run play</dt>
+          <dd class="col-sm-8">{{ device.auto_run_play|default:"—" }}</dd>
+          <dt class="col-sm-4 text-muted">Last seen</dt>
+          <dd class="col-sm-8">
+            {% if device.last_seen %}{{ device.last_seen|timesince }} ago{% else %}never{% endif %}
+          </dd>
+        </dl>
+
+        <label class="form-label">API key</label>
+        <div class="input-group mb-1">
+          <input id="apiKey" class="form-control" value="{{ device.api_key }}" readonly>
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="navigator.clipboard.writeText(document.getElementById('apiKey').value)">
+            <i class="bx bx-copy"></i> Copy
+          </button>
+        </div>
+        <p class="text-danger small mb-3">
+          <i class="bx bx-lock-alt"></i> Keep this secret. Anyone with this key can upload media as this device.
+        </p>
+
+        <label class="form-label">Tailnet host</label>
+        <input class="form-control" value="{{ device.tailnet_host|default:'' }}"
+               placeholder="e.g. 100.101.102.103 or studio-mbp" readonly>
+        <small class="text-muted">Set on the Device in Django admin. The device's own tailnet address.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-7">
+    <!-- Agent setup -->
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Sync agent setup</h5>
+        <p class="text-muted">
+          Run the sync agent on this device (on your tailnet). It watches a folder and
+          uploads every new recording to the media server's ingest endpoint over Tailscale —
+          asynchronously, resumably, surviving flaky wifi.
+        </p>
+        <ol class="text-muted mb-3">
+          <li>Install Tailscale on both machines and run <code>tailscale up</code>.</li>
+          <li>Find the media server's tailnet IP/host (<code>tailscale ip -4</code> or the admin console).</li>
+          <li>Install deps: <code>pip install requests</code> (see <code>syncagent/requirements.txt</code>).</li>
+          <li>Run the agent with this device's key:</li>
+        </ol>
+        <label class="form-label">Command</label>
+        <div class="input-group mb-2">
+          <input id="agentCmd" class="form-control font-monospace" value="{{ ingest_command }}" readonly>
+          <button class="btn btn-outline-secondary" type="button"
+                  onclick="navigator.clipboard.writeText(document.getElementById('agentCmd').value)">
+            <i class="bx bx-copy"></i> Copy
+          </button>
+        </div>
+        <small class="text-muted">
+          Replace <code>&lt;media-server-tailnet-host&gt;</code> with the server's tailnet IP/host and
+          <code>~/Recordings</code> with your capture folder. The agent keeps running and only
+          uploads files once they've finished writing.
+        </small>
+      </div>
+    </div>
+
+    <!-- Received files -->
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Recent files</h5>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th class="text-end">Size</th>
+                <th>Status</th>
+                <th class="text-end">Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in files %}
+              <tr>
+                <td>{{ f.filename }}</td>
+                <td class="text-end text-muted">{{ f.size_bytes|filesizeformat }}</td>
+                <td>
+                  <span class="badge bg-{% if f.status == 'PROCESSED' %}success{% elif f.status == 'FAILED' %}danger{% else %}info{% endif %}">
+                    {{ f.get_status_display }}
+                  </span>
+                </td>
+                <td class="text-end text-muted">{{ f.created_at|timesince }} ago</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">No files received yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

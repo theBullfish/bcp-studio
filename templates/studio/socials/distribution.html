@@ -1,0 +1,63 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center mb-3">
+          <h5 class="card-title me-2 mb-0">Channels &amp; distribution by client</h5>
+          <span class="badge bg-soft-primary text-primary ms-2">{{ clients|length }} client{{ clients|length|pluralize }}</span>
+        </div>
+        <p class="text-muted">
+          Manage each client's connected social channels, authorize the app to
+          post on their behalf, and set how produced media is divided across
+          platforms.
+        </p>
+
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Client</th>
+                <th>Type</th>
+                <th class="text-center">Authorized channels</th>
+                <th class="text-center">Distribution rules</th>
+                <th class="text-end">Manage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in clients %}
+              <tr>
+                <td>
+                  <a href="{% url 'studio:dist_client' c.id %}" class="text-body fw-medium">{{ c.name }}</a>
+                </td>
+                <td><span class="badge bg-soft-info text-info">{{ c.get_type_display }}</span></td>
+                <td class="text-center">
+                  {% if c.n_channels %}
+                    <span class="badge bg-success">{{ c.n_channels }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">0</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-soft-primary text-primary">{{ c.n_rules }}</span>
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'studio:dist_client' c.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bx bx-slider-alt align-middle me-1"></i>Manage
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-muted py-3">No clients yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'public/base.html' %}
+{% block title %}Thank you — Balls &amp; Chunk{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <div class="mb-3"><i class="bx bx-check-circle" style="font-size:3.5rem;color:#34c38f;"></i></div>
+        <h3 class="text-white">Thank you for your order!</h3>
+        <p class="text-white-50">
+          Your payment went through. A receipt is on its way to your email.
+        </p>
+        <a href="{% url 'studio:shop' %}" class="btn btn-primary mt-3">
+          <i class="bx bx-arrow-back"></i> Continue shopping
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

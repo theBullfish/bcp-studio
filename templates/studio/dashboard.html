@@ -1,0 +1,186 @@
+{% extends 'partials/base.html' %}
+{% load static humanize %}
+
+{% block contents %}
+<!-- Stat row -->
+<div class="row">
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Revenue (all time)</p>
+            <h4 class="mb-0">${{ revenue_total|floatformat:0|intcomma }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-dollar-circle font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Active projects</p>
+            <h4 class="mb-0">{{ active_projects }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-folder font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Scheduled posts</p>
+            <h4 class="mb-0">{{ scheduled_posts }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle bg-primary align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle bg-primary"><i class="bx bx-calendar-check font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-xl-3">
+    <div class="card mini-stats-wid">
+      <div class="card-body">
+        <div class="d-flex">
+          <div class="flex-grow-1">
+            <p class="text-muted fw-medium mb-2">Awaiting approval</p>
+            <h4 class="mb-0">{{ pending_approvals }}</h4>
+          </div>
+          <div class="avatar-sm rounded-circle {% if pending_approvals %}bg-warning{% else %}bg-primary{% endif %} align-self-center mini-stat-icon">
+            <span class="avatar-title rounded-circle {% if pending_approvals %}bg-warning{% else %}bg-primary{% endif %}"><i class="bx bx-check-shield font-size-24"></i></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Revenue chart -->
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center mb-2">
+          <h5 class="card-title me-2">Revenue</h5>
+          <div class="ms-auto">
+            <span class="badge bg-soft-primary text-primary">Last 6 months</span>
+          </div>
+        </div>
+        <div class="row text-center mb-2">
+          <div class="col-4"><p class="text-muted mb-1">Impressions</p><h5>{{ impressions|intcomma }}</h5></div>
+          <div class="col-4"><p class="text-muted mb-1">Views</p><h5>{{ views|intcomma }}</h5></div>
+          <div class="col-4"><p class="text-muted mb-1">Likes</p><h5>{{ likes|intcomma }}</h5></div>
+        </div>
+        <div id="revenue-chart" class="apex-charts"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Next 30 days -->
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title me-2">Next 30 days</h5>
+          <a href="{% url 'studio:calendar' %}" class="ms-auto small">Calendar →</a>
+        </div>
+        <ul class="list-unstyled">
+          {% for r in upcoming %}
+          <li class="d-flex py-2 border-bottom">
+            <div class="avatar-xs me-3 align-self-center">
+              <span class="avatar-title rounded bg-soft-primary text-primary">
+                {{ r.release_date|date:"d" }}
+              </span>
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-0">{{ r.title }}</h6>
+              <small class="text-muted">{{ r.client.name }} · {{ r.get_kind_display }}</small>
+            </div>
+            {% if r.is_primary %}<span class="badge bg-primary align-self-center">yours</span>{% endif %}
+          </li>
+          {% empty %}
+          <li class="text-muted py-3">No releases scheduled.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Recent posts -->
+  <div class="col-xl-8">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <h5 class="card-title me-2">Recent posts</h5>
+          <a href="{% url 'studio:posts' %}" class="ms-auto small">View all →</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle table-nowrap mb-0">
+            <tbody>
+              {% for p in recent_posts %}
+              <tr>
+                <td style="width:20px"><span class="d-inline-block rounded-circle" style="width:10px;height:10px;background:{{ p.dot }}"></span></td>
+                <td><a href="{% url 'studio:post_detail' p.id %}" class="text-body">{{ p.caption|truncatechars:60 }}</a></td>
+                <td class="text-muted">{{ p.client.name }}</td>
+                <td><span class="badge bg-{{ p.badge }}">{{ p.get_status_display }}</span></td>
+                <td class="text-muted text-end">{{ p.updated_at|timesince }} ago</td>
+              </tr>
+              {% empty %}
+              <tr><td class="text-muted py-3">No posts yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trending -->
+  <div class="col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">Trending &amp; news</h5>
+        {% for t in trends %}
+        <a href="{{ t.url|default:'#' }}" target="_blank" class="d-block p-2 mb-2 rounded bg-light text-body">
+          <small class="text-muted d-block">{{ t.source }}</small>
+          {{ t.title|truncatechars:80 }}
+        </a>
+        {% empty %}
+        <p class="text-muted">No trend data yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="{% static 'libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script>
+  var options = {
+    chart: { type: 'area', height: 320, toolbar: { show: false } },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 3 },
+    colors: ['#556ee6'],
+    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05 } },
+    series: [{ name: 'Revenue ($)', data: {{ rev_series|safe }} }],
+    xaxis: { categories: {{ rev_months|safe }} },
+    yaxis: { labels: { formatter: function (v) { return '$' + v.toLocaleString(); } } },
+    tooltip: { y: { formatter: function (v) { return '$' + v.toLocaleString(); } } }
+  };
+  new ApexCharts(document.querySelector("#revenue-chart"), options).render();
+</script>
+{% endblock %}

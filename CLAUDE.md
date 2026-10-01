@@ -3,29 +3,32 @@
 ## What this is
 AI media production & social publishing platform for Balls and Chunk Productions.
 Record a bit → AI plays cut it into every format → finish → approve → auto-post → track.
+Built ON the **Skote** Django Bootstrap admin template — USE its real components, don't reskin.
 
-## Layout
-- `web/` — Next.js 14 (App Router, TS, Tailwind, Prisma, NextAuth). UI + API.
-- `worker/` — Python/FastAPI. AI plays (ffmpeg) + caption generation (Claude).
-- `web/prisma/schema.prisma` — the single source of truth for data.
-- `docs/BUILD_SPEC.md` — conventions. Read before adding code.
-- `docs/ARCHITECTURE.md`, `ROADMAP.md` — design + status.
+## Stack & layout
+- Django 4.2, allauth auth, Skote front-end. Postgres in prod / SQLite in dev.
+- `skote/` — Django project package (settings, root urls). Keep the package name.
+- `studio/` — our app: `models.py` (whole data model), `views.py` (screens),
+  `services.py` (AI plays + caption gen), `admin.py` (back office), `urls.py`,
+  `management/commands/seed_studio.py`, `templatetags/studio_extras.py`.
+- `templates/studio/*` — our pages, each `{% extends 'partials/base.html' %}`.
+- `templates/partials/sidebar.html` — our nav (customized).
+- `static/` — Skote compiled libs (ApexCharts, DataTables, FullCalendar, chat).
+- `docs/TEMPLATE_SPEC.md` — how to build pages on Skote's components. Read before adding UI.
 
 ## Conventions
-- Server components by default; `"use client"` only when needed.
-- Add `export const dynamic = "force-dynamic";` to DB-reading pages/routes.
-- Shared code lives in `web/src/lib/*` and `web/src/components/*` — reuse, don't duplicate.
-- RBAC via `web/src/lib/rbac.ts` (`CAN`). Worker calls via `web/src/lib/worker.ts`.
-- Analytics/revenue/pay are INTERNAL only — never on a public route.
+- Deep CRUD = Django admin (everything registered). Day-to-day flow = studio views.
+- RBAC: `role_at_least()` in models; `_can(user, Role.X)` in views. 7 roles.
+- Analytics/revenue/pay are INTERNAL only — behind login, never public.
+- AI plays/captions in `studio/services.py`; degrade gracefully (no ffmpeg / no API key).
 
 ## Commands
 ```bash
-docker compose up --build          # full stack
-cd web && npm run dev               # web only (needs DATABASE_URL + a running db)
-cd web && npm run db:push && npm run db:seed
-cd worker && uvicorn app.main:app --reload --port 8800
-cd worker && pytest
+python manage.py migrate
+python manage.py seed_studio        # demo data + logins
+python manage.py runserver
+python manage.py createsuperuser
 ```
 
 ## Login (seed)
-owner@ballsandchunk.com / chunk1234
+owner / chunk1234  (email owner@ballsandchunk.com). Six accounts, one per role.

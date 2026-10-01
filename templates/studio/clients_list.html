@@ -1,0 +1,70 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+{% if can_manage %}
+<div class="row mb-3">
+  <div class="col-12 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newClient">
+      <i class="bx bx-plus"></i> New client
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  {% for c in clients %}
+  <div class="col-xl-4 col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-3">
+          <div class="avatar-sm me-3">
+            <span class="avatar-title rounded-circle text-white" style="background: {{ c.brand_kit.primary_color }}">
+              {{ c.name|slice:":1" }}
+            </span>
+          </div>
+          <div>
+            <h5 class="mb-0"><a href="{% url 'studio:client_detail' c.id %}" class="text-body">{{ c.name }}</a></h5>
+            <small class="text-muted">/{{ c.slug }}</small>
+          </div>
+          {% if not c.active %}<span class="badge bg-secondary ms-auto">inactive</span>{% endif %}
+        </div>
+        <div class="d-flex mb-3">
+          {% if c.brand_kit %}
+          <span title="Primary" class="me-1 rounded" style="width:28px;height:28px;background:{{ c.brand_kit.primary_color }}"></span>
+          <span title="Secondary" class="me-1 rounded" style="width:28px;height:28px;background:{{ c.brand_kit.secondary_color }}"></span>
+          <span title="Accent" class="me-1 rounded" style="width:28px;height:28px;background:{{ c.brand_kit.accent_color }}"></span>
+          {% endif %}
+        </div>
+        <div class="row text-center">
+          <div class="col-6 border-end"><h5 class="mb-0">{{ c.n_projects }}</h5><small class="text-muted">Projects</small></div>
+          <div class="col-6"><h5 class="mb-0">{{ c.n_social }}</h5><small class="text-muted">Channels</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card"><div class="card-body text-center text-muted py-5">No clients yet.</div></div></div>
+  {% endfor %}
+</div>
+
+{% if can_manage %}
+<div class="modal fade" id="newClient" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'studio:client_create' %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">New client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <label class="form-label">Client / brand name</label>
+        <input name="name" class="form-control" placeholder="e.g. Neon Alley Records" required>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Create client</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link href="{% static 'libs/datatables.net-bs4/css/dataTables.bootstrap4.min.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block contents %}
+<div class="row mb-3">
+  <div class="col-md-8">
+    <div class="btn-group flex-wrap" role="group">
+      <a href="{% url 'studio:posts' %}" class="btn btn-{% if not status %}primary{% else %}soft-primary{% endif %} btn-sm">All</a>
+      {% for value, label in statuses %}
+      <a href="?status={{ value }}" class="btn btn-{% if status == value %}primary{% else %}soft-primary{% endif %} btn-sm">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% if can_draft %}
+  <div class="col-md-4 text-md-end mt-2 mt-md-0">
+    <a href="{% url 'studio:post_compose' %}" class="btn btn-primary">
+      <i class="bx bx-plus"></i> Compose post
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <table id="datatable" class="table table-bordered dt-responsive nowrap w-100">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Caption</th>
+              <th>Client</th>
+              <th>Status</th>
+              <th>Scheduled / Published</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in posts %}
+            <tr>
+              <td>
+                <span class="d-inline-block rounded-circle align-middle me-2" style="width:10px;height:10px;background:{{ p.dot }}"></span>
+                {{ p.get_platform_display }}
+              </td>
+              <td><a href="{% url 'studio:post_detail' p.id %}" class="text-body">{{ p.caption|truncatechars:60|default:"(no caption)" }}</a></td>
+              <td class="text-muted">{{ p.client.name }}</td>
+              <td><span class="badge bg-{{ p.badge }}">{{ p.get_status_display }}</span></td>
+              <td class="text-muted">
+                {% if p.published_at %}{{ p.published_at|date:"M j, Y" }}
+                {% elif p.scheduled_at %}{{ p.scheduled_at|date:"M j, Y" }}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="{% static 'libs/datatables.net/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'libs/datatables.net-bs4/js/dataTables.bootstrap4.min.js' %}"></script>
+<script>$(function(){ $('#datatable').DataTable({pageLength:10, order:[]}); });</script>
+{% endblock %}

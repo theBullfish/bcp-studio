@@ -1,30 +1,27 @@
-# Node / Next
-node_modules/
-.next/
-out/
-dist/
-*.tsbuildinfo
-next-env.d.ts
-
-# Env & secrets
-.env
-.env.local
-web/.env
-worker/.env
-
-# Prisma
-web/prisma/dev.db
-
 # Python
 __pycache__/
 *.pyc
 .venv/
+venv/
 .pytest_cache/
 .ruff_cache/
 
-# Media / data
-/data/
-web/public/uploads/
+# Django
+*.sqlite3
+db.sqlite3
+/assets/            # collectstatic output (STATIC_ROOT)
+/media/
+/staticfiles/
 
-# OS
+# Env & secrets
+.env
+.env.local
+*.key
+
+# Node (Skote asset build — not used at runtime)
+node_modules/
+
+# OS / editor
 .DS_Store
+.idea/
+.vscode/

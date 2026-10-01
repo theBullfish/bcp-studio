@@ -1,0 +1,54 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+<div class="row mb-3">
+  <div class="col-12">
+    <div class="btn-group" role="group" aria-label="Calendar scope">
+      <a href="?scope=mine"
+         class="btn {% if scope == 'mine' %}btn-primary{% else %}btn-soft-primary{% endif %}">
+        <i class="bx bx-user-voice"></i> My release dates
+      </a>
+      <a href="?scope=company"
+         class="btn {% if scope == 'company' %}btn-primary{% else %}btn-soft-primary{% endif %}">
+        <i class="bx bx-buildings"></i> Whole company
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-body">
+        <div id="calendar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_javascript %}
+<script src="{% static 'libs/fullcalendar/index.global.min.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(el, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,listMonth'
+      },
+      events: '/calendar/events/?scope={{ scope }}',
+      eventClick: function (info) {
+        if (info.event.url) {
+          info.jsEvent.preventDefault();
+          window.location.href = info.event.url;
+        }
+      }
+    });
+    calendar.render();
+  });
+</script>
+{% endblock %}

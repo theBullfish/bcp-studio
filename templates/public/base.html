@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Balls &amp; Chunk{% endblock %}</title>
+  <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+  <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet" type="text/css" />
+  <link href="{% static 'css/icons.min.css' %}" rel="stylesheet" type="text/css" />
+  <link href="{% static 'css/app.min.css' %}" rel="stylesheet" type="text/css" />
+  <style>
+    body { background:#0f1020; color:#e9e9f0; }
+    .pub-nav { background:#16172b; border-bottom:1px solid rgba(255,255,255,.08); }
+    .card { background:#1b1c33; border:1px solid rgba(255,255,255,.06); }
+    a { color:#a78bfa; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <nav class="pub-nav py-3 mb-4">
+    <div class="container d-flex align-items-center">
+      <a href="/shop/" class="fw-bold text-white text-decoration-none fs-5">Balls&nbsp;&amp;&nbsp;Chunk</a>
+      <div class="ms-auto">
+        <a href="/shop/" class="text-white-50 me-3 text-decoration-none">Store</a>
+        <a href="/watch/" class="text-white-50 text-decoration-none">Watch</a>
+      </div>
+    </div>
+  </nav>
+  <div class="container pb-5">
+    {% if messages %}
+      {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+  <script src="{% static 'libs/jquery/dist/jquery.min.js' %}"></script>
+  <script src="{% static 'libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+  {% block extra_javascript %}{% endblock %}
+</body>
+</html>

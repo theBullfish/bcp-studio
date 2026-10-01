@@ -1,0 +1,21 @@
+{% extends 'public/base.html' %}
+{% block title %}Checkout cancelled — Balls &amp; Chunk{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <div class="mb-3"><i class="bx bx-x-circle" style="font-size:3.5rem;color:#f46a6a;"></i></div>
+        <h3 class="text-white">Checkout cancelled</h3>
+        <p class="text-white-50">
+          No worries — you weren't charged. Your cart is still here if you want to try again.
+        </p>
+        <a href="{% url 'studio:shop' %}" class="btn btn-primary mt-3">
+          <i class="bx bx-arrow-back"></i> Back to store
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

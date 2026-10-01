@@ -1,0 +1,26 @@
+{% extends 'public/base.html' %}
+{% load static %}
+{% block title %}{% if error %}Payments{% else %}Subscribed{% endif %} — Watch{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body text-center py-5">
+        {% if error %}
+        <i class="bx bx-credit-card" style="font-size:3rem;color:#a78bfa"></i>
+        <h3 class="text-white mt-3">Payments aren't set up yet</h3>
+        <p class="text-white-50">{{ error }}</p>
+        {% if plan %}<p class="text-white-50">You tried to subscribe to <strong>{{ plan.channel.name }} — {{ plan.name }}</strong>.</p>{% endif %}
+        <a href="{% url 'studio:watch_home' %}" class="btn btn-primary mt-2">Back to channels</a>
+        {% else %}
+        <i class="bx bx-check-circle" style="font-size:3rem;color:#22c55e"></i>
+        <h3 class="text-white mt-3">You're subscribed!</h3>
+        <p class="text-white-50">Thanks for supporting the channel. Your membership unlocks members-only videos.</p>
+        <a href="{% url 'studio:watch_home' %}" class="btn btn-primary mt-2">Start watching</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

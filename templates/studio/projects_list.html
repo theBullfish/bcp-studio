@@ -1,0 +1,77 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block contents %}
+{% if can_create %}
+<div class="row mb-3">
+  <div class="col-12 text-end">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newProject">
+      <i class="bx bx-plus"></i> New project
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<div class="row">
+  {% for p in projects %}
+  <div class="col-xl-4 col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <h5 class="mb-0 me-2">
+            <a href="{% url 'studio:project_detail' p.id %}" class="text-body">{{ p.title }}</a>
+          </h5>
+          <span class="badge bg-{{ p.badge }} ms-auto">{{ p.get_status_display }}</span>
+        </div>
+        <p class="text-muted mb-3">{{ p.summary|truncatechars:120|default:"No summary yet." }}</p>
+        <div class="d-flex align-items-center text-muted small">
+          <span class="me-3"><i class="bx bx-buildings me-1"></i>{{ p.client.name }}</span>
+          <span class="me-3"><i class="bx bx-image me-1"></i>{{ p.n_media }} media</span>
+          <span><i class="bx bx-user me-1"></i>{{ p.owner.username }}</span>
+        </div>
+        <div class="text-muted small mt-2">Updated {{ p.updated_at|timesince }} ago</div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="card"><div class="card-body text-center text-muted py-5">No projects yet.</div></div></div>
+  {% endfor %}
+</div>
+
+{% if can_create %}
+<div class="modal fade" id="newProject" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{% url 'studio:project_create' %}" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">New project</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Client</label>
+          <select name="client" class="form-select" required>
+            <option value="" disabled selected>Choose a client…</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input name="title" class="form-control" placeholder="e.g. Cold open — episode 12" required>
+        </div>
+        <div class="mb-0">
+          <label class="form-label">Summary — feeds the AI caption writer</label>
+          <textarea name="summary" class="form-control" rows="3" placeholder="What's this bit about? Tone, hooks, references…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Create project</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
